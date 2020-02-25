@@ -1,0 +1,3848 @@
+/* 
+ * AVL.slf
+ * Author: Sean McCook
+ *
+ * --------------------------------------------------------------
+ * Template File: sum.slf - Jonathon Aldrich
+ * 
+ * Formalization of integers, addition, and a proof that addition commutes
+ * 
+ * This template defines natural numbers in terms of zero (z) and successor s n,
+ * defines judgments for sums and less than, proves a few simple theorems,
+ * and then inductively proves that addition commutes.  As we go along,
+ * we illustrate the SASyLF language in tutorial style.
+ * 
+ * --------------------------------------------------------------
+ * 
+ * In expansion to sum.slf, formalization of equality, max, and natural number
+ * proofs such as - addition is total, zero is less than a successor, addition is associative,
+ * nothing is less than zero, trichotomy, max is total, etc. 
+ * 
+ * 
+ * Formalization of binary trees, AVL trees, tree insertion, tree height, and proofs that
+ * tree height is total and unique; after insertion a tree's height is either the same or the successor;
+ * insertion into an AVL tree is total; and the AVL property is preserved through insertion.
+ * 
+ * 
+ * This file defines binary trees in terms of leaf (null) and node (t n t),
+ * defines judgments for the max of two numbers, the height of a tree, the closeness of two numbers,
+ * AVL trees, equality of trees, and tree insertion, and then inductively proves that max
+ * is total and unique, height is total and unique, insertion into a tree increases the height by 
+ * zero or one, insertion into an AVL tree is total, and that AVL property is preserved through insertion.
+ *
+ */
+
+
+/** The package declaration is currently a placeholder, but
+ * will eventually support a module system for SASyLF
+ */
+
+package edu.cmu.cs.sum;
+
+/** SASyLF programs explicitly declare terminals that are
+ * used to parse expressions.  This helps the SASyLF parser
+ * detect problems in the input grammar--anything that is not
+ * a declared terminal, non-terminal, or variable must be an error.
+ * The user should declare all identifiers used in syntax and judgment
+ * that do not themselves denote syntactic classes.  Symbols like
+ * + or |- do not need to be declared, even if they are terminals.
+ */
+terminals z s null h max AVL
+
+
+/************************ SYNTAX **************************************/
+
+/** The syntax section declares the syntax of the formal
+ * system, in this case of the lambda calculus.  Syntax is
+ * given using an ordinary BNF grammar.
+ */
+syntax
+
+/** This declaration declares n as a nonterminal, representing a natural
+ * number.  n and variants of n (n', n'', n1, n2, etc.--you can add
+ * primes or numbers) are used as metavariables for this syntactic
+ * category, as commonly used in the PL research literature.
+ */
+n ::= z
+  | s n
+
+t ::= null
+  | t n t
+
+/************************ JUDGMENTS **************************************/
+
+/** We declare a judgment with a name ("sum") and a form ("n + n = n").
+ * The judgment is then followed by a series of inference rules that define
+ * the judgment's semantics.
+ *
+ * Rules are defined with the premises above the line and the conclusion
+ * below the line.
+ */
+
+
+judgment equals: n = n
+
+----------- eq
+n = n 
+ 
+
+judgment sum: n + n = n
+
+--------- sum-z
+z + n = n
+
+n1 + n2 = n3
+-------------------- sum-s
+(s n1) + n2 = (s n3)
+
+
+judgment less: n < n
+
+------- less-one
+n < s n
+
+n1 < n3
+n3 < n2
+------- less-transitive
+n1 < n2
+
+judgment max: max n n = n
+
+n1 < n2
+----------max-n1-less
+max n1 n2 = n2
+
+n2 < n1
+----------max-n2-less
+max n1 n2 = n1
+
+n1 = n2
+----------max-equal
+max n1 n2 = n1
+
+judgment height: h t = n
+
+------------null-height
+h (null) = z
+
+h t1 = n1
+h t2 = n2
+max n1 n2 = n3
+------------node-height
+h (t1 n t2) = s n3
+
+judgment close: n1 ~ n2
+
+-----------n-close-to-succ
+n ~ s n
+
+-----------n-close-to-n
+n~n
+
+-----------succ-close-to-n
+s n ~ n 
+    
+judgment AVL: AVL t
+
+
+-----------AVL-null
+AVL null
+
+AVL t1
+AVL t2
+h t1 = n1
+h t2 = n2
+n1 ~ n2
+-----------AVL-node
+AVL t1 n t2
+
+
+judgment tree-is-equal-to: t = t
+
+---------tree-eq
+t = t 
+
+judgment insert: t + n = t
+   
+ ----------insert-to-null
+ null + n = null n null
+ 
+ 
+ -----------add-duplicate
+ (t n t') + n = t n t'
+ 
+ 
+ n2 < n1
+ t1 + n2 = t1'
+ h t1' = n1'
+ h t2 = n2'
+ n1' ~ n2'
+  -----------add-left-no-rotate
+ t1 n1 t2 + n2 = t1' n1 t2
+ 
+ 
+ 
+ n1 < n2
+ t2 + n2 = t2'
+ h t1 = n1'
+ h t2' = n2'
+ n1' ~ n2'
+ -----------add-right-no-rotate
+ t1 n1 t2 + n2 = t1 n1 t2'
+ 
+ 
+ 
+ n2 < n1
+ t1 + n2 = t1'
+ h t1' = n1'
+ h t2 = n2'
+ s n2' < n1'
+ t1' = t11 n11 t12
+ h t11 = s n2'
+ h t12 = n2'
+ -----------add-left-single-rotate
+ t1 n1 t2 + n2 = t11 n11 (t12 n1 t2)
+ 
+ 
+ 
+ 
+ n1 < n2
+ t2 + n2 = t2' 
+ h t1 = n1'
+ h t2' = n2'
+ s n1' < n2'
+ t2' = t21 n21 t22
+ h t21 = n1'
+ h t22 = s n1' 
+ -------------add-right-single-rotate
+ t1 n1 t2 + n2 = (t1 n1 t21) n21 t22
+
+ 
+ n2 < n1
+ t1 + n2 = t1'
+ h t1' = n1'
+ h t2 = n2'
+ s n2' < n1'
+ t1' = t11 n11 t12  
+ t12 = t13 n12 t14
+ h t11 = n2'
+ h t12 = s n2'
+ -------------add-left-double-rotate
+ t1 n1 t2 + n2 = (t11 n11 t13) n12 (t14 n1 t2)
+ 
+ 
+ n1 < n2
+ t2 + n2 = t2'
+ h t1 = n1'
+ h t2' = n2'
+ s n1' < n2'
+ t2' = t21 n21 t22
+ t21 = t23 n22 t24
+ h t21 = s n1'
+ h t22 = n1'
+ -------------add-right-double-rotate
+ t1 n1 t2 + n2 = (t1 n1 t23) n22 (t24 n21 t22)
+  
+ 
+
+/************************ THEOREMS **************************************/
+
+
+
+theorem n_plus_1_equals_s_n : forall n exists (s (z)) + n = (s n).
+
+
+d1: (z) + n = n		by rule sum-z
+d2: (s (z)) + n = (s n)	by rule sum-s on d1
+
+end theorem
+
+
+theorem n_plus_3_equals_s_s_s_n_autosolve : forall n exists (s (s (s (z)))) + n = (s (s (s n))).
+
+d1: (z) + n = n     by rule sum-z
+d2: (s (z)) + n = (s n) by rule sum-s on d1
+d3: (s ( s (z))) + n = (s (s (n))) by rule sum-s on d2
+d4: (s (s (s (z)))) + n = (s (s (s (n)))) by rule sum-s on d3	
+end theorem
+
+theorem z_less_s_z_autosolve : exists z < s z.
+
+d: z < s z	by rule less-one 
+
+end theorem
+
+
+theorem z_less_s_s_z_autosolve : exists z < s s z.
+
+d1: z < s z	by rule less-one
+d2: s z < s s z by rule less-one
+d3: z < s s z by rule less-transitive on d1,d2
+
+end theorem
+
+
+theorem n_less_s_s_n_autosolve : forall n exists n < s s n.
+
+d1: n < s n	by rule less-one
+d2: s n < s s n by rule less-one
+d3: n < s s n by rule less-transitive on d1,d2 
+
+end theorem
+
+
+theorem one_plus_1_equals_s_n : exists (s (z)) + (s (z)) = (s s z).
+                                                                    
+d1: (s (z)) + (s (z)) = (s s z) by theorem n_plus_1_equals_s_n on (s z)	
+
+end theorem
+
+
+theorem sn_plus_1_equals_ss_n : forall n exists (s (z)) + (s (n)) = (s s n).
+                                                                  
+d1: (s (z)) + (s (n)) = (s s n) by theorem n_plus_1_equals_s_n on (s n)
+
+end theorem
+
+
+
+
+
+theorem sum-z-rh: forall n exists n + (z) = n.
+
+d1: n + (z) = n by induction on n:
+
+
+    case z is
+	       d2: (z) + (z) = (z)	by rule sum-z
+    end case
+
+
+    case s n' is
+	       d3: n' + (z) = n'	by induction hypothesis on n' 
+	       d4: (s n') + (z) = (s n')	by rule sum-s on d3   
+    end case                                              
+                                                      
+end induction                                         
+end theorem
+
+
+
+ theorem sum-s-rh: forall d1: n1 + n2 = n3 exists n1 + (s n2) = (s n3).
+
+ d2: n1 + (s n2) = s n3 by induction on d1: 
+
+
+
+     case rule
+
+         ----------------- sum-z
+         dzc: (z) + n = n
+         where n1 := z
+         and n2 := n
+         and n3 := n
+
+     is
+
+         dz1: (z) + (s n) = (s n) by rule sum-z
+
+     end case
+
+
+     case rule
+
+         dsp: n1' + n2 = n3'
+         ---------------------------- sum-s
+         dsc: (s n1') + n2 = (s n3')
+         where n1 := s n1'
+         and n3 := s n3'
+     is
+
+         ds1: n1' + (s n2) = (s n3') by induction hypothesis on dsp
+         ds2: (s n1') + (s n2) = (s s n3') by rule sum-s on ds1
+
+     end case
+ end induction
+end theorem
+
+
+
+theorem sum-commutes: forall d1: n1 + n2 = n3 exists n2 + n1 = n3.
+
+d2: n2 + n1 = n3 by induction on d1:
+
+    case rule
+
+        ----------------- sum-z
+        dzc: (z) + n = n
+        where n1 := z
+        and n2 := n
+        and n3 := n
+
+    is
+
+        dz1: n + (z) = n by theorem sum-z-rh on n
+
+    end case
+
+
+    case rule
+
+        dsp: n1' + n2 = n3'
+        ---------------------------- sum-s
+        dsc: (s n1') + n2 = (s n3')
+        where n1 := s n1'
+        and n3 := s n3'
+
+    is
+
+        ds1: n2 + n1' = n3' by induction hypothesis on dsp
+        ds2: n2 + (s n1') = (s n3') by theorem sum-s-rh on ds1
+
+    end case
+end induction
+end theorem
+
+
+// End of template
+
+theorem sum-total: forall n1 forall n2 exists n1 + n2 = n3.
+
+d1: n1 + n2 = n3 by induction on n1:
+
+    case z is
+        d2: (z) + n2 = n2    by rule sum-z
+    end case
+
+    case s n1' is
+        d3: n1' + n2 = n3' by induction hypothesis on n1', n2
+        d4: s n1' + n2 = s n3' by rule sum-s on d3
+       
+    end case
+
+end induction
+end theorem
+
+
+
+theorem z-lt-succ: forall n exists z < s n.
+    
+d1: z < s n by induction on n:
+                      
+    case z is
+        d2: z < s z by rule less-one
+    end case
+
+    case s n' is
+        d3: z < s n' by induction hypothesis on n'
+        d4: s n' < s s n' by rule less-one 
+        d5: z < s s n' by rule less-transitive on d3,d4
+    
+    end case
+
+end induction
+end theorem
+
+
+
+
+theorem sum-associative*:
+    forall d12: n1 + n2 = n3
+    forall d34: n3 + n4 = n7
+    exists n2 + n4 = n6 and n1 + n6 = n7.
+   
+   
+    use induction on d12 
+                   
+    proof by case analysis on d12:
+    
+        case rule
+
+            ----------------- sum-z
+            dzc: (z) + n = n
+            where n1 := z
+            and n2 := n
+            and n3 := n
+
+        is 
+            d1: z + n7 = n7 by rule sum-z 
+            proof by d34,d1 
+            
+        end case
+        
+        case rule
+
+            dsp: n1' + n2 = n3'
+            ---------------------------- sum-s
+            dsc: (s n1') + n2 = (s n3')
+            where n1 := s n1'
+            and n3 := s n3'
+
+        is
+            proof by case analysis on d34:
+                case rule
+                    
+                    dsp2: n3' + n4 = n7'
+                    -------------------- sum-s
+                    dsc2: s n3' + n4 = s n7'
+                    where n7 := s n7'
+                is
+                    a1: n2 + n4 = n6 and a2: n1' + n6 = n7' by induction hypothesis on dsp, dsp2 
+                    a3: s n1' + n6 = s n7' by rule sum-s on a2
+                    proof by a1,a3
+                end case
+                        
+                        
+            end case analysis
+        end case
+   
+    end case analysis         
+end theorem
+
+
+
+theorem equality: forall d1: n1 + n2 = n3 forall d2: n1 + n2 = n4 exists n3 = n4.
+proof by case analysis on d1:
+    case rule
+            
+        ----------------- sum-z
+        dzc: (z) + n = n
+        where n1 := z
+        and n2 := n
+        and n3 := n
+
+    is
+        proof by case analysis on d2:
+            case rule
+                -----------------sum-z    
+                dzc2: z + n = n
+                where n4:= n
+                and n2 := n
+
+       
+            is
+                d3: n = n by rule eq
+            end case 
+ 
+        end case analysis    
+    end case
+        
+    case rule 
+            
+           
+        dsp: n1' + n2 = n3'
+        ---------------------------- sum-s
+        dsc: (s n1') + n2 = (s n3')
+        where n1 := s n1'
+        and n3 := s n3'
+            
+    is
+        proof by case analysis on d2:
+            case rule
+                dsp2: n1' + n2 = n4'
+                ---------------------------- sum-s
+                dsc2: (s n1') + n2 = (s n4')
+                where n4 := s n4'
+            is
+                d4: n3' = n4' by induction hypothesis on dsp, dsp2
+                proof by case analysis on d4:
+                    case rule
+                    
+                        --------------- eq
+                        deq: n = n
+                        where n3' := n
+                        and n4' := n
+                    is 
+                        deq1: s n = s n by rule eq
+
+                    end case
+                
+                end case analysis
+            end case
+        end case analysis
+    end case      
+    
+end case analysis
+end theorem 
+
+
+theorem nothing-lt-z: forall d1: n < z exists contradiction
+
+proof by induction on d1:
+    
+    case rule
+     
+        dst1: n < n3 
+        dst2: n3 < z 
+        --------------- less-transitive  
+        dsc: n < z
+       
+    is    
+     
+        proof by induction hypothesis on dst2
+    end case        
+
+end induction
+end theorem
+
+
+theorem lt-cancel-succ: forall d1:s n1 < s n2 exists n1 < n2
+
+proof by induction on d1:
+    
+    case rule
+    
+    -----------------less-one
+    dloc: s n1 < s s n1
+    where n2 := s n1 
+    
+    is
+        dlo1: n1 < s n1 by rule less-one       
+    end case
+    
+    case rule
+    dltp1: s n1 < n3
+    dltp2: n3 < s n2
+    -------------less-transitive
+    dltc: s n1 < s n2 
+    
+    is  
+        
+        proof by case analysis on n3: 
+           
+           case z is
+               
+               dz: contradiction by theorem nothing-lt-z on dltp1
+               
+           end case     
+          
+          case s n4 is
+              
+              d3: n1 < n4 by induction hypothesis on dltp1
+              d4: n4 < n2 by induction hypothesis on dltp2 
+              dc: n1 < n2 by rule less-transitive on d3,d4   
+          end case      
+            
+        end case analysis    
+    end case
+
+end induction
+end theorem
+
+
+
+theorem anti-symmetric: forall n1 forall d1: n1 < n2 forall d2: n2 < n1 exists contradiction.
+use induction on n1, d1 
+
+proof by case analysis on d1:
+    
+    case rule        
+    
+        ------------less-one
+        dls: n1 < s n1
+        where n2 := s n1
+        
+    is
+        
+        proof by case analysis on n1:
+            
+            case z is
+                        
+                proof by theorem nothing-lt-z on d2
+            end case
+            
+            case s n1' is
+
+                dl: n1' < s n1' by rule less-one
+                d: s n1' < n1' by theorem lt-cancel-succ on d2
+
+                proof by induction hypothesis on n1',dl,d
+            end case    
+        end case analysis     
+    end case
+    
+    case rule 
+    
+        dtp1: n1 < n3
+        dtp2: n3 < n2
+        --------------less-transitive 
+        dtc:  n1 < n2
+         
+    is
+       
+        
+        d: n3 < n1 by rule less-transitive on dtp2, d2
+        proof by induction hypothesis on n1, dtp1, d
+    end case     
+end case analysis
+end theorem 
+
+
+theorem less-than-contradict: forall d1: n < n exists contradiction.
+    proof by induction on d1:
+    
+    case rule
+    
+    dtp1:  n <  n2'
+    dtp2:  n2' <  n
+    -----------less-transitive
+    dtc:  n <  n    
+     
+    is 
+         
+        proof by theorem anti-symmetric on n,dtp1,dtp2
+    end case    
+    
+    end induction
+end theorem    
+
+theorem sum-contradict: forall d1: n1 + n2 = n3 forall d2: n3 < n2 exists contradiction.
+    
+proof by induction on d1:
+    
+    case rule
+        
+        ------------sum-z
+        dzc: z + n = n
+        where n1 := z
+        and n2 := n
+        and n3 := n 
+            
+    is
+        
+        proof by theorem less-than-contradict on d2      
+        
+    end case
+      
+    case rule
+        dsp: n1' + n2 = n3'
+        --------------sum-s
+        dsc: s n1' + n2 = s n3'
+        where n1 := s n1'
+        and n3 := s n3'    
+    is
+             
+        ds1: n3' < s n3' by rule less-one
+        ds2: n3' < n2 by rule less-transitive on ds1, d2
+        proof by induction hypothesis on dsp, ds2
+    end case  
+end induction
+end theorem
+                                     
+theorem lt-sum: forall d1: s n1 + n2 = n3 exists n2 < n3.
+proof by induction on d1:
+    case rule
+        dp1: n1 + n2 = n3'
+        -------------------------- sum-s
+        _: (s n1) + n2 = (s n3')
+        where n3 := s n3'
+    is
+        proof by case analysis on n1:
+            case z is
+                proof by case analysis on n2:
+                    case z is
+                        d2: z < s n3' by theorem z-lt-succ on n3'
+                    end case
+
+                    case s n0 is
+                        
+                        d3: z + s n0 = s n0 by rule sum-z
+                        d4: n3' = s n0 by theorem equality on dp1, d3
+                        use inversion of eq on d4
+                        where n3' := s n0
+                        
+                        d5: s n0 < s s n0 by rule less-one
+                    end case
+                end case analysis     
+            end case
+
+            case s n0 is
+                d2: n2 < n3' by induction hypothesis on dp1
+                d3: n3' < s n3' by rule less-one
+                d4: n2 < s n3' by rule less-transitive on d2, d3
+            end case
+        end case analysis   
+    end case
+
+end induction
+end theorem 
+
+
+theorem add-cancel:
+    forall d1: n1 + n2 = n3
+    forall d2: n1' + n2 = n3
+    exists n1 = n1'.
+    
+    dc: n1 = n1' by induction on d1:
+    
+        case rule   
+                 
+            -------------sum-z
+            dzc: z + n = n
+            where n1 := z
+            and n2 := n
+            and n3 := n
+            
+        is  
+             
+            proof by case analysis on n1':
+                
+                case z is
+
+                    de: z = z by rule eq 
+                end case
+                
+                case s n1'' is
+                    d: n < n by theorem lt-sum on d2
+                    dc: contradiction by theorem less-than-contradict on d     
+                end case        
+            end case analysis
+        end case
+       
+        case rule
+            dp: n0 + n2 = n3'
+            -------------sum-s
+            dsc: s n0 + n2 = s n3'
+            where n1 := s n0
+            and n3 := s n3'
+        is    
+            proof by case analysis on d2:
+     
+                case rule
+                  
+                    ------------sum-z
+                    dz: z + s n = s n
+                    where n1' := z     
+                    and n2 := s n
+                    and n3' := n 
+                 
+                is       
+                        
+                        dz1: n3' < n2 by rule less-one
+                        dzc: contradiction by theorem sum-contradict on dp, dz1
+                end case
+                
+                case rule
+                    
+                    dsp: n0' + n2 = n3' 
+                    -------------sum-s
+                    dssc: s n0' + n2 = s n3'
+                    where n1' := s n0'    
+                is
+                    
+                    d4: n0 = n0' by induction hypothesis on dp, dsp
+                    use inversion of eq on d4
+                    where n0 := n0'
+                    
+                    d5: s n0' = s n0' by rule eq                      
+                end case   
+            end case analysis      
+        end case  
+    end induction   
+end theorem
+
+
+theorem sum-associative:
+    forall d12: n1 + n2 = n3
+    forall d34: n3 + n4 = n7
+    forall d24: n2 + n4 = n6
+    exists      n1 + n6 = n7.
+    
+    dc: n1 + n6 = n7 by induction on d12: 
+    
+        case rule
+
+            ----------------- sum-z
+            dzc: (z) + n = n
+            where n1 := z
+            and n2 := n
+            and n3 := n
+
+        is
+
+            de: n7 = n6 by theorem equality on d34, d24
+            use inversion of eq on de
+            where n7 := n6
+            dz: z + n6 = n6 by rule sum-z
+        end case
+
+        case rule
+
+            dsp: n1' + n2 = n3'
+            ---------------------------- sum-s
+            dsc: (s n1') + n2 = (s n3')
+            where n1 := s n1'
+            and n3 := s n3'
+
+        is
+            proof by case analysis on d34:
+                
+                case rule 
+                    
+                    dsp2: n3' + n4 = n7'
+                    ------------------------ sum-s
+                    dsc2: (s n3') + n4 = (s n7')
+                    where n7 := s n7'
+                
+                    is                   
+                                
+                    ds1: n1' + n6 = n7' by induction hypothesis on dsp, dsp2, d24 
+                    ds2: s n1' + n6 = s n7' by rule sum-s on ds1
+                end case
+            end case analysis
+        end case
+    end induction
+end theorem
+
+theorem lt-succ: forall d1: n1 < n2 exists s n1 < s n2.
+proof by induction on d1:
+    
+    case rule
+        
+        ----------less-one
+        dc1: n1 < s n1
+        where n2 := s n1
+    is
+        d2: s n1 < s s n1 by rule less-one 
+    end case        
+    
+    case rule
+        dt1: n1 < n0
+        dt2: n0 < n2
+        ------------- less-transitive
+        _: n1 < n2
+    is
+        proof by case analysis on n0:
+            
+            case z is
+                d3: contradiction by theorem nothing-lt-z on dt1
+            end case    
+            
+            case s n0' is
+               
+               d4: s n1 < s s n0' by induction hypothesis on dt1
+               d5: s s n0' < s n2 by induction hypothesis on dt2
+               d6: s n1 < s n2 by rule less-transitive on d4, d5
+            end case               
+        end case analysis    
+    end case   
+    
+end induction
+end theorem
+
+theorem trichotomy: forall n1 forall n2 exists n1 < n2 or n2 < n1 or n1 = n2.
+
+proof by induction on n1:
+    case z is
+        proof by case analysis on n2:
+            case z is
+                d1: z = z by rule eq
+            end case
+
+            case s n2' is
+                d2: z < s n2' by theorem z-lt-succ on n2'
+            end case
+        end case analysis    
+    end case
+
+    case s n1' is
+        proof by case analysis on n2:
+            case z is
+                d3: z < s n1' by theorem z-lt-succ on n1'
+            end case
+
+            case s n2' is
+                d4: n1' < n2' or n2' < n1' or n1' = n2' by induction hypothesis on n1', n2'
+                proof by case analysis on d4:
+                    case or o1: n1' < n2' is
+                        d5: s n1' < s n2' by theorem lt-succ on o1
+                    end case
+
+                    case or o2: n2' < n1' is
+                        
+                        d6: s n2' < s n1' by theorem lt-succ on o2
+                    end case
+
+                    case or o3: n1' = n2' is
+                        use inversion of eq on o3
+                        where n1' := n2'
+                        
+                        d10: s n2' = s n2' by rule eq
+                    end case   
+                end case analysis
+            end case 
+        end case analysis
+    end case
+end induction
+end theorem
+
+
+
+
+theorem max-total: forall n1 forall n2 exists max n1 n2 = n3.
+proof by induction on n1:
+
+    case z is
+        proof by case analysis on n2:
+            case z is
+                d1: z = z by rule eq
+                d2: max z z = z by rule max-equal on d1  
+            end case
+            
+            case s n2' is 
+                d3: z < s n2' by theorem z-lt-succ on n2'
+                d4: max z s n2' = s n2' by rule max-n1-less on d3    
+            end case
+                
+        end case analysis    
+    end case
+    
+    case s n1' is
+        proof by case analysis on n2:
+            case z is
+                d5: z < s n1' by theorem z-lt-succ on n1'
+                d6: max s n1' z = s n1' by rule max-n2-less on d5
+            end case    
+        
+            case s n2' is
+                
+                d7: max n1' n2' = n3' by induction hypothesis on n1', n2'
+                
+                proof by case analysis on d7:
+                   
+                    case rule 
+                       
+                       dl1: n1' < n2'
+                       ----------- max-n1-less
+                       dc1: max n1' n2' = n2'
+                       where n3' := n2'    
+                    is   
+                        d8: s n1' < s n2' by theorem lt-succ on dl1
+                        d9: max s n1' s n2' = s n2' by rule max-n1-less on d8 
+                    end case  
+                    
+                    case rule
+                        dl2: n2' < n1'
+                        ---------------- max-n2-less
+                        dc2: max n1' n2' = n1'
+                        where n3' := n1'
+                    is
+                        d10: s n2' < s n1' by theorem lt-succ on dl2
+                        d11: max s n1' s n2' = s n1' by rule max-n2-less on d10   
+                    end case
+
+                    case rule
+                        dl3: n1' = n2'
+                        ---------------- max-equal
+                        dc3: max n1' n2' = n1'
+                        where n3' := n1'
+                    is
+                        use inversion of eq on dl3
+                        where n1' := n2'
+                        
+                        
+                        d12: s n2' = s n2' by rule eq
+                        d13: max (s n2') (s n2') = s n2' by rule max-equal on d12
+                    end case   
+                                
+                end case analysis     
+            end case        
+        end case analysis
+    end case
+end induction
+end theorem
+
+theorem height-total: forall t1 exists h t1 = n1.
+proof by induction on t1:
+
+    case null is
+        
+       d1: h null = z by rule null-height 
+    end case
+    
+    
+    case t1' n1' t2' is
+        
+        d2: h t1' = n1'' by induction hypothesis on t1'
+        d3: h t2' = n2'' by induction hypothesis on t2'
+        d4: max n1'' n2'' = n3 by theorem max-total on n1'', n2''
+        d5: h (t1' n1' t2') = s n3 by rule node-height on d2, d3, d4
+    end case
+    
+end induction    
+end theorem
+
+theorem max-unique: 
+forall d1: max n1 n2 = n3 
+forall d2: max n1 n2 = n6 
+exists n3 = n6.
+proof by induction on d1:
+    case rule
+        dp1: n1 < n2
+        ---------------- max-n1-less
+        _: max n1 n2 = n2
+        where n3 := n2
+    is
+        proof by case analysis on d2:
+            case rule
+                dp2: n1 < n2
+                ---------------- max-n1-less
+                _: max n1 n2 = n2
+                where n6 := n2
+            is
+                d3: n6 = n6 by rule eq
+            end case
+
+            case rule
+                dp3: n2 < n1
+                ---------------- max-n2-less
+                _: max n1 n2 = n1
+                where n6 := n1
+            is
+                d4: contradiction by theorem anti-symmetric on n1, dp1, dp3
+            end case
+
+            case rule
+                dp4: n1 = n2
+                ---------------- max-equal
+                _: max n1 n2 = n1
+                where n6 := n1
+            is
+                use inversion of eq on dp4
+                where n1 := n2
+                d5: n3 = n3 by rule eq
+            end case
+  
+        end case analysis
+    end case
+
+    case rule
+        dp5: n2 < n1
+        ---------------- max-n2-less
+        _: max n1 n2 = n1
+        where n3 := n1
+    is
+        proof by case analysis on d2:
+            case rule
+                dp6: n1 < n2
+                ---------------- max-n1-less
+                _: max n1 n2 = n2
+                where n6 := n2
+            is
+                d3: contradiction by theorem anti-symmetric on n1, dp6, dp5
+            end case
+
+            case rule
+                _: n2 < n1
+                ---------------- max-n2-less
+                _: max n1 n2 = n1
+                where n6 := n1
+            is
+                d4: n1 = n1 by rule eq
+            end case
+
+            case rule
+                _: n1 = n2
+                ---------------- max-equal
+                _: max n1 n2 = n1
+                where n6 := n1
+            is
+                d5: n1 = n1 by rule eq
+            end case     
+        end case analysis                
+    end case
+
+    case rule
+        dp7: n1 = n2
+        ---------------- max-equal
+        _: max n1 n2 = n1
+        where n3 := n1
+    is
+        proof by case analysis on d2:
+            case rule
+                dp8: n1 < n2
+                ---------------- max-n1-less
+                _: max n1 n2 = n2
+                where n6 := n2 
+            is
+                proof by dp7
+            end case
+
+            case rule
+                dp9: n2 < n1
+                ---------------- max-n2-less
+                _: max n1 n2 = n1
+                where n6 := n1
+            is
+                d3: n1 = n1 by rule eq
+            end case
+
+            case rule
+                _: n1 = n2
+                ---------------- max-equal
+                _: max n1 n2 = n1
+                where n6 := n1
+            is
+                d4: n1 = n1 by rule eq
+            end case
+        end case analysis
+    end case
+end induction
+end theorem
+
+theorem height-unique: forall d1: h t1 = n1 forall d2: h t1 = n2 exists n1 = n2.
+proof by induction on d1:
+    case rule
+        ------------------ null-height
+        _: h null = z
+        where n1 := z
+        and t1 := null
+    is
+        proof by case analysis on d2:
+            case rule
+                ------------------ null-height
+                _: h null = z
+                where n2 := z
+            is
+                d3: z = z by rule eq
+            end case    
+        end case analysis
+    end case
+
+    case rule
+        dp1: h t0 = n0
+        dp2: h t2 = n3
+        dp3: max n0 n3 = n4
+        ------------------ node-height
+        _: h (t0 n5 t2) = (s n4)
+        where t1 := t0 n5 t2 
+        and n1 := s n4
+    is
+        
+        proof by case analysis on d2:
+            case rule
+                dp4: h t0 = n6
+                dp5: h t2 = n7
+                dp6: max n6 n7 = n8
+                ------------------ node-height
+                _: h (t0 n5 t2) = (s n8)
+                where n2 := s n8
+            is
+                d4: n0 = n6 by induction hypothesis on dp1, dp4
+                use inversion of eq on d4
+                where n0 := n6
+                d5: n3 = n7 by induction hypothesis on dp2, dp5
+                use inversion of eq on d5 
+                where n3 := n7
+                
+                d6: n4 = n8 by theorem max-unique on dp3, dp6
+                use inversion of eq on d6
+                where n4 := n8
+                
+                d7: s n4 = s n8 by rule eq
+            end case
+        end case analysis
+    end case
+end induction
+end theorem
+
+
+theorem height-increase: forall d1: t1 + n2 = t1' forall a1: AVL t1 forall d2: h t1 = n1 forall d3: h t1' = n1'
+exists n1' = n1 or n1' = s n1.
+proof by induction on d1:
+    case rule
+        ---------------- insert-to-null
+        _: null + n2 = (null n2 null)
+        where t1 := null
+        and t1' := null n2 null
+    is  
+        use inversion of null-height on d2
+        where n1 := z
+
+
+        d5: h null = z by rule null-height
+        d6: z = z by rule eq
+        d7: max z z = z by rule max-equal on d6
+        d8: h null n2 null = s z by rule node-height on d5, d5, d7 
+        
+        d9: n1' = s z by theorem height-unique on d3, d8
+    end case
+    
+    case rule
+        ----------------- add-duplicate
+        _: (t0 n2 t2) + n2 = (t0 n2 t2)
+        where t1 := t0 n2 t2
+        and t1' := t0 n2 t2
+    is 
+        
+        d12: n1' = n1 by theorem height-unique on d3, d2
+    end case
+
+    case rule
+        dp1: n2 < n0
+        dp2: t0 + n2 = t2
+        dp3: h t2 = n3
+        dp4: h t3 = n4
+        dp5: n3 ~ n4
+        ----------------- add-left-no-rotate
+        _: (t0 n0 t3) + n2 = (t2 n0 t3)
+        where t1 := t0 n0 t3
+        and t1' := t2 n0 t3
+    is
+       
+        proof by case analysis on d2:
+            case rule
+                dp6: h t0 = n5
+                dp7: h t3 = n6
+                dp8: max n5 n6 = n7
+                ------------------ node-height
+                _: h (t0 n0 t3) = (s n7) 
+                where n1 := s n7
+            is
+                proof by case analysis on d3:       
+                    case rule
+                        dp9: h t2 = n8
+                        dp10: h t3 = n9
+                        dp11: max n8 n9 = n10
+                        ------------------ node-height
+                        _: h (t2 n0 t3) = (s n10)  
+                        where n1' := s n10
+                    is
+                        
+                        d13: n3 = n8 by theorem height-unique on dp3, dp9
+                        use inversion of eq on d13
+                        where n3 := n8
+                        
+                        
+                        d14: n6 = n9 by theorem height-unique on dp7, dp10
+                        use inversion of eq on d14
+                        where n6 := n9
+                        
+                        d66: n9 = n4 by theorem height-unique on dp10, dp4
+                        use inversion of eq on d66
+                        where n9 := n4
+                        
+                        proof by case analysis on a1:
+                            case rule
+                                p12: AVL t0
+                                p13: AVL t3
+                                p14: h t0 = n11
+                                p15: h t3 = n12
+                                p16: n11 ~ n12
+                                ----------------- AVL-node
+                                _: AVL (t0 n0 t3)
+                            is
+	                               
+	                        
+	                               d15: n8 = n5 or n8 = s n5 by induction hypothesis on dp2, p12, dp6, dp9
+	                        
+	                               proof by case analysis on d15:
+	                                   case or o1: n8 = n5 is
+	                                       use inversion of eq on o1
+	                                       where n8 := n5
+	                                    
+	                                       d17: n10 = n7 by theorem max-unique on dp11, dp8
+	                                       use inversion of eq on d17
+	                                       where n10 := n7
+	                                    
+	                                       d18: s n10 = s n7 by rule eq
+	                                   end case
+	    
+	                                   case or o2: n8 = (s n5) is
+	                                       use inversion of eq on o2
+	                                       where n8 := s n5
+	                                    
+	                                       proof by case analysis on dp5: 
+	                                           case rule
+	                                               ----------------- n-close-to-succ
+	                                               _: (s n5) ~ (s (s n5))
+	                                               where n4 := s s n5
+	                                           is
+	                                               d200: s n5 < s s n5 by rule less-one
+	                                               d201: max s n5 s s n5 = s s n5 by rule max-n1-less on d200	                                               
+	                                               d202: s s n5 = n10 by theorem max-unique on d201, dp11
+	                                               use inversion of eq on d202
+	                                               where n10 := s s n5
+	                                               
+	                                               d203: n5 < s s n5 by theorem n_less_s_s_n_autosolve on n5
+	                                               d204: max n5 s s n5 = s s n5 by rule max-n1-less on d203
+	                                               d205: s s n5 = n7 by theorem max-unique on d204, dp8
+	                                               use inversion of eq on d205 
+	                                               where n7 := s s n5
+	                                               
+	                                               d206:s s s n5 = s s s n5 by rule eq 
+	                                           end case
+
+	                                           case rule
+	                                               ----------------- n-close-to-n
+	                                               _: (s n5) ~ (s n5)
+	                                               where n4 := s n5
+	                                           is
+	                                               d206: s n5 = s n5 by rule eq
+	                                               d207: max s n5 s n5 = s n5 by rule max-equal on d206
+	                                               d208: s n5 = n10 by theorem max-unique on d207, dp11
+	                                               use inversion of eq on d208
+	                                               where n10 := s n5
+	                                               
+                                                d209: n5 < s n5 by rule less-one
+                                                d210: max n5 s n5 = s n5 by rule max-n1-less on d209
+                                                d211: s n5 = n7 by theorem max-unique on d210, dp8
+                                                use inversion of eq on d211
+                                                where n7 := s n5
+                                                   
+                                                d212: s s n5 = s s n5 by rule eq
+	                                           end case
+
+	                                           case rule
+	                                               ----------------- succ-close-to-n
+	                                               _: (s n4) ~ n4
+	                                               where n5 := n4
+	                                           is
+	                                               d213: n5 < s n5 by rule less-one
+	                                               d214: max s n5 n5 = s n5 by rule max-n2-less on d213
+	                                               d215: s n5 = n10 by theorem max-unique on d214, dp11
+	                                               use inversion of eq on d215 
+	                                               where n10 := s n4
+	                                               
+	                                               d216: n5 = n5 by rule eq
+	                                               d217: max n5 n5 = n5 by rule max-equal on d216
+	                                               d218: n5 = n7 by theorem max-unique on d217, dp8
+	                                               use inversion of eq on d218
+	                                               where n4 := n7
+	                                               
+	                                               d219: s s n7 = s s n7 by rule eq
+	                                           end case
+	                                       end case analysis
+	                                   end case    
+	                               end case analysis                 
+                            end case
+                        end case analysis                         
+                    end case               
+                end case analysis
+            end case
+        end case analysis        
+    end case
+
+    case rule
+        dp12: n0 < n2
+        dp13: t0 + n2 = t2
+        dp14: h t3 = n3
+        dp15: h t2 = n4
+        dp16: n3 ~ n4
+        ----------------- add-right-no-rotate
+        _: (t3 n0 t0) + n2 = (t3 n0 t2)
+        where t1 := t3 n0 t0
+        and t1' := t3 n0 t2
+    is
+        proof by case analysis on d2:
+            case rule
+                dp17: h t3 = n5
+                dp18: h t0 = n6
+                dp19: max n5 n6 = n7
+                ------------------ node-height
+                _: h (t3 n0 t0) = (s n7)
+                where n1 := s n7
+            is
+                proof by case analysis on d3:
+                    case rule
+                        dp20: h t3 = n8
+                        dp21: h t2 = n9
+                        dp22: max n8 n9 = n10
+                        ------------------ node-height
+                        _: h (t3 n0 t2) = (s n10)
+                        where n1' := s n10
+                    is
+                        proof by case analysis on a1:
+                            case rule
+                                p23: AVL t3
+                                p24: AVL t0
+                                p25: h t3 = n11
+                                p26: h t0 = n12
+                                p27: n11 ~ n12
+                                ----------------- AVL-node
+                                _: AVL (t3 n0 t0)
+                            is
+                                d220: n3 = n5 by theorem height-unique on dp14, dp17
+                                use inversion of eq on d220
+                                where n3 := n5
+                                      
+                                d221: n4 = n9 by theorem height-unique on dp15, dp21
+                                use inversion of eq on d221
+                                where n4 := n9
+                                      
+                                      
+		                              d25: n9 = n6 or n9 = s n6 by induction hypothesis on dp13, p24, dp18, dp21
+		                        
+		                              d26: n5 = n8 by theorem height-unique on dp17,dp20
+		                              use inversion of eq on d26
+		                              where n5:= n8
+		                        
+		                              proof by case analysis on d25:
+		                                  case or o3: n9 = n6 is
+		                                      use inversion of eq on o3
+		                                      where n9 := n6
+		                                
+		                                      d27: n10 = n7 by theorem max-unique on dp22, dp19
+		                                      use inversion of eq on d27
+		                                      where n10 := n7
+		                                
+		                                      d28: s n10 = s n7 by rule eq
+		                                  end case
+		
+		                                  case or o4: n9 = (s n6) is
+		                                      use inversion of eq on o4
+		                                      where n9 := s n6
+		                                      
+		                                      proof by case analysis on dp16:
+		                                          case rule
+		                                              ----------------- n-close-to-succ
+		                                              _: n8 ~ (s n8)
+		                                              where n6 := n8
+		                                          is
+		                                              d222: n8 < s n8 by rule less-one
+		                                              d223: max n8 s n8 = s n8 by rule max-n1-less on d222
+		                                              d224: s n8 = n10 by theorem max-unique on d223, dp22
+		                                              use inversion of eq on d224
+		                                              where n10 := s n8
+		                                              
+		                                              d225: n8 = n8 by rule eq
+		                                              d226: max n8 n8 = n8 by rule max-equal on d225
+		                                              d227: n8 = n7 by theorem max-unique on d226, dp19
+		                                              use inversion of eq on d227
+		                                              where n8 := n7
+		                                              
+		                                              d228: s s n7 = s s n7 by rule eq
+		                                          end case
+
+		                                          case rule
+		                                              ----------------- n-close-to-n
+		                                              _: (s n6) ~ (s n6)
+		                                              where n8 := s n6
+		                                          is
+		                                              d229: s n6 = s n6 by rule eq
+		                                              d230: max s n6 s n6 = s n6 by rule max-equal on d229
+		                                              d231: s n6 = n10 by theorem max-unique on d230, dp22
+		                                              use inversion of eq on d231
+		                                              where n10 := s n6
+		                                              
+		                                              d232: n6 < s n6 by rule less-one
+		                                              d233: max s n6 n6 = s n6 by rule max-n2-less on d232
+		                                              d234: s n6 = n7 by theorem max-unique on d233, dp19
+		                                              use inversion of eq on d234
+		                                              where n7 := s n6
+		                                              
+		                                              d235: s s n6 = s s n6 by rule eq
+		                                          end case
+
+		                                          case rule
+		                                              ----------------- succ-close-to-n
+		                                              _: (s (s n6)) ~ (s n6)
+		                                              where n8 := s s n6
+		                                          is
+		                                              d236: s n6 < s s n6 by rule less-one
+		                                              d237: max s s n6 s n6 = s s n6 by rule max-n2-less on d236
+		                                              d238: s s n6 = n10 by theorem max-unique on d237, dp22
+		                                              use inversion of eq on d238
+		                                              where n10 := s s n6
+		                                              
+		                                              d239: n6 < s s n6 by theorem n_less_s_s_n_autosolve on n6
+		                                              d240: max s s n6 n6 = s s n6 by rule max-n2-less on d239
+		                                              d241: s s n6 = n7 by theorem max-unique on d240, dp19
+		                                              use inversion of eq on d241
+		                                              where n7 := s s n6
+		                                              
+		                                              d242: s s s n6 = s s s n6 by rule eq
+		                                          end case   
+		                                      end case analysis
+		                                  end case    
+		                              end case analysis
+	                           end case
+                        end case analysis
+                    end case
+                end case analysis    
+            end case           
+        end case analysis
+    end case
+
+    case rule
+        dp23: n2 < n0
+        dp24: t0 + n2 = t2
+        dp25: h t2 = n3
+        dp26: h t3 = n4
+        dp27: (s n4) < n3
+        dp28: t2 = (t4 n5 t5)
+        dp29: h t4 = (s n4)
+        dp30: h t5 = n4
+        ----------------- add-left-single-rotate
+        _: (t0 n0 t3) + n2 = (t4 n5 (t5 n0 t3))
+        where t1 := t0 n0 t3
+        and t1' := (t4 n5 (t5 n0 t3))
+    is  
+        
+        d30: n4 < s n4 by rule less-one 
+        d31: max s n4 n4 = s n4 by rule max-n2-less on d30
+        use inversion of tree-eq on dp28
+        where t2 := t4 n5 t5
+        d33: h t2 = s (s n4) by rule node-height on dp29, dp30, d31     
+           
+        proof by case analysis on d2:
+            case rule
+                dp31: h t0 = n6
+                dp32: h t3 = n7
+                dp33: max n6 n7 = n8
+                ------------------ node-height
+                _: h (t0 n0 t3) = (s n8)
+                where n1 := s n8
+            is
+          
+                proof by case analysis on d3:
+                    case rule
+                        dp34: h t4 = n9
+                        dp35: h (t5 n0 t3) = n10
+                        dp36: max n9 n10 = n11
+                        ------------------ node-height
+                        _: h (t4 n5 (t5 n0 t3)) = (s n11)
+                        where n1' := s n11
+                    is
+                        d35: n7 = n4 by theorem height-unique on dp32, dp26
+                        use inversion of eq on d35
+                        where n7 := n4
+                                        
+                        d39: n9 = s n4 by theorem height-unique on dp34, dp29
+                        use inversion of eq on d39
+                        where n9 := s n4
+                        
+                        proof by case analysis on a1:
+                            case rule
+                                p37: AVL t0
+                                p38: AVL t3
+                                p39: h t0 = n12
+                                p40: h t3 = n13
+                                p41: n12 ~ n13
+                                ----------------- AVL-node
+                                _: AVL (t0 n0 t3)
+                            is
+		                              d34: s s n4 = n6 or s s n4 = s n6 by induction hypothesis on dp24, p37, dp31, d33
+		                              proof by case analysis on d34:
+		                                  case or o5: (s (s n4)) = n6 is
+		                                      use inversion of eq on o5
+		                                      where n6 := s s n4
+		                                
+		                                      d36: n4 < s s n4 by theorem n_less_s_s_n_autosolve on n4
+		                                      d37: max s s n4 n4 = s s n4 by rule max-n2-less on d36 
+		                                      d38: n8 = s s n4 by theorem max-unique on dp33, d37
+		                                      use inversion of eq on d38
+		                                      where n8 := s s n4
+		                                
+		                                      d40: n4 = n4 by rule eq
+		                                      d41: max n4 n4 = n4 by rule max-equal on d40
+		                                      d42: h (t5 n0 t3) = s n4 by rule node-height on dp30, dp26, d41
+		                                      d43: n10 = s n4 by theorem height-unique on dp35, d42
+		                                      use inversion of eq on d43
+		                                      where n10 := s n4
+		                                
+		                                      d44: s n4 = s n4 by rule eq
+		                                      d45: max s n4 s n4 = s n4 by rule max-equal on d44
+		                                      d46: n11 = s n4 by theorem max-unique on dp36, d45
+		                                      use inversion of eq on d46
+		                                      where n11 := s n4
+		                                
+		                                
+		                                      d47: n12 = s s n4 by theorem height-unique on p39, dp31
+		                                      use inversion of eq on d47
+		                                      where n12 := s s n4
+		                                        
+		                                      d48: n13 = n4 by theorem height-unique on p40, dp26
+		                                      use inversion of eq on d48
+		                                      where n13 := n4
+		                                      proof by contradiction on p41 
+				                                end case
+		
+		                                  case or o6: (s (s n4)) = (s n6) is
+		                                      use inversion of eq on o6
+		                                      where n6 := s n4
+		                                      
+		                                      d47: n4 < s n4 by rule less-one		                                      
+		                                      d48: max s n4 n4 = s n4 by rule max-n2-less on d47
+		                                      d49: n8 = s n4 by theorem max-unique on dp33, d48
+		                                      use inversion of eq on d49
+		                                      where n8 := s n4
+		                                      
+		                                      d50: n4 = n4 by rule eq
+		                                      d51: max n4 n4 = n4 by rule max-equal on d50
+		                                      d52: h (t5 n0 t3) = s n4 by rule node-height on dp30, dp26, d51
+		                                      d53: n10 = s n4 by theorem height-unique on dp35, d52
+		                                      use inversion of eq on d53
+		                                      where n10 := s n4
+		                                      
+		                                      d54: s n4 = s n4 by rule eq
+		                                      d55: max s n4 s n4 = s n4 by rule max-equal on d54
+		                                      d56: n11 = s n4 by theorem max-unique on dp36, d55
+		                                      use inversion of eq on d56 
+		                                      where n11 := s n4
+		                                      
+		                                      d57: s s n4 = s s n4 by rule eq
+		                                  end case                         
+		                              end case analysis                              
+                            end case
+                        end case analysis
+                    end case                   
+                end case analysis
+            end case           
+        end case analysis
+    end case
+
+    case rule
+        p1: n0 < n2
+        p2: t0 + n2 = t2
+        p3: h t3 = n3
+        p4: h t2 = n4
+        p5: (s n3) < n4
+        p6: t2 = (t4 n5 t5)
+        p7: h t4 = n3
+        p8: h t5 = (s n3)
+        ------------------- add-right-single-rotate
+        _: (t3 n0 t0) + n2 = ((t3 n0 t4) n5 t5)
+        where t1 := t3 n0 t0 
+        and t1' := (t3 n0 t4) n5 t5
+    is
+        
+        d100: n3 < s n3 by rule less-one
+        d101: max n3 s n3 = s n3 by rule max-n1-less on d100
+        use inversion of tree-eq on p6
+        where t2 := t4 n5 t5
+        d102: h t2 = s (s n3) by rule node-height on p7,p8,d101
+        
+        d103: n4 = s s n3 by theorem height-unique on p4, d102
+        use inversion of eq on d103
+        where n4 := s s n3
+        
+        proof by case analysis on d2:
+            case rule
+                p9: h t3 = n6
+                p10: h t0 = n7
+                p11: max n6 n7 = n8
+                ------------------ node-height
+                _: h (t3 n0 t0) = (s n8)
+                where n1 := s n8
+            is
+                proof by case analysis on d3:
+                    case rule
+                        p12: h (t3 n0 t4) = n9
+                        p13: h t5 = n10
+                        p14: max n9 n10 = n11
+                        ------------------ node-height
+                        _: h ((t3 n0 t4) n5 t5) = (s n11)
+                        where n1' := s n11
+                    is
+                        proof by case analysis on a1:
+                            case rule
+                                p15: AVL t3
+                                p16: AVL t0
+                                p17: h t3 = n12
+                                p18: h t0 = n13
+                                p19: n12 ~ n13
+                                ----------------- AVL-node
+                                _: AVL (t3 n0 t0)
+                            is
+                                d104: n3 = n6 by theorem height-unique on p3, p9
+                                use inversion of eq on d104
+                                where n3 := n6
+                                
+                                d105: n3 = n3 by rule eq
+                                d106: max n3 n3 = n3 by rule max-equal on d105
+                                d107: h (t3 n0 t4) = s n3 by rule node-height on p3,p7,d106
+                                
+                                d108: n9 = s n3 by theorem height-unique on p12, d107
+                                use inversion of eq on d108
+                                where n9 := s n6
+                                
+                                d109: n10 = s n3 by theorem height-unique on p13, p8
+                                use inversion of eq on d109
+                                where n10 := s n6
+                                
+                                d110: s n3 = s n3 by rule eq
+                                d111: max s n3 s n3 = s n3 by rule max-equal on d110
+                                d112: n11 = s n3 by theorem max-unique on p14, d111
+                                use inversion of eq on d112
+                                where n11 := s n6
+                                
+                                d117: n12 = n6 by theorem height-unique on p17, p9
+                                use inversion of eq on d117
+                                where n12 := n6
+                                
+                                d118: n13 = n7 by theorem height-unique on p18, p10
+                                use inversion of eq on d118 
+                                where n13 := n7
+                                
+                                d113: s s n6 = n7 or s s n6 = s n7 by induction hypothesis on p2, p16, p10, d102 
+                                
+                                proof by case analysis on d113:
+                                    case or o7: (s (s n6)) = n7 is
+                                        use inversion of eq on o7
+                                        where n7 := s s n6
+                                        
+                                        d114: n6 < s s n6 by theorem n_less_s_s_n_autosolve on n6
+                                        d115: max n6 s s n6 = s s n6 by rule max-n1-less on d114
+                                        
+                                        d116: n8 = s s n6 by theorem max-unique on p11, d115
+                                        use inversion of eq on d116
+                                        where n8 := s s n6
+                                        proof by contradiction on p19
+                                    end case
+
+                                    case or o8: (s (s n6)) = (s n7) is
+                                        use inversion of eq on o8
+                                        where n7 := s n6
+                                        
+                                        d119: n6 < s n6 by rule less-one
+                                        d120: max n6 s n6 = s n6 by rule max-n1-less on d119
+                                        d121: n8 = s n6 by theorem max-unique on p11,d120
+                                        use inversion of eq on d121
+                                        where n8 := s n6
+                                        
+                                        d122: s s n6 = s s n6 by rule eq
+                                    end case  
+                                end case analysis    
+                            end case                           
+                        end case analysis    
+                    end case  
+                end case analysis
+            end case  
+        end case analysis
+    end case
+
+    case rule
+        dp70: n2 < n0
+        dp71: t0 + n2 = t2
+        dp72: h t2 = n3
+        dp73: h t3 = n4
+        dp74: (s n4) < n3
+        dp75: t2 = (t4 n5 t5)
+        dp76: t5 = (t6 n6 t7)
+        dp77: h t4 = n4
+        dp78: h t5 = (s n4)
+        ------------------- add-left-double-rotate
+        _: (t0 n0 t3) + n2 = ((t4 n5 t6) n6 (t7 n0 t3))
+        where t1 := t0 n0 t3
+        and t1' := ((t4 n5 t6) n6 (t7 n0 t3))
+    is
+        use inversion of tree-eq on dp75
+        where t2 := t4 n5 t5
+        
+        use inversion of tree-eq on dp76
+        where t5 := t6 n6 t7
+        
+        d80: n4 < s n4 by rule less-one
+        d81: max n4 s n4 = s n4 by rule max-n1-less on d80
+        d82: h t2 = s s n4 by rule node-height on dp77, dp78, d81
+        d83: n3 = s s n4 by theorem height-unique on dp72, d82
+        
+        
+        proof by case analysis on d2:
+            case rule
+                dp79: h t0 = n7
+                dp80: h t3 = n8
+                dp81: max n7 n8 = n9
+                ------------------ node-height
+                _: h (t0 n0 t3) = (s n9)
+                where n1 := s n9
+            is
+                proof by case analysis on d3:
+                    case rule
+                        dp82: h (t4 n5 t6) = n10
+                        dp83: h (t7 n0 t3) = n11
+                        dp84: max n10 n11 = n12
+                        ------------------ node-height
+                        _: h ((t4 n5 t6) n6 (t7 n0 t3)) = (s n12)
+                        where n1' := s n12
+                    is
+                        proof by case analysis on a1:
+                            case rule
+                                dp86: AVL t0
+                                dp87: AVL t3
+                                dp88: h t0 = n13
+                                dp89: h t3 = n14
+                                dp90: n13 ~ n14
+                                ----------------- AVL-node
+                                _: AVL (t0 n0 t3)
+                            is
+                                
+                                d125: n13 = n7 by theorem height-unique on dp88, dp79
+                                use inversion of eq on d125
+                                where n13 := n7
+                                d126: n14 = n4 by theorem height-unique on dp89, dp73
+                                use inversion of eq on d126
+                                where n14 := n4
+                                
+                                d84: n8 = n4 by theorem height-unique on dp80, dp73
+                                use inversion of eq on d84
+                                where n8 := n4
+                                
+                                d85: s s n4 = n7  or s s n4 = s n7 by induction hypothesis on dp71, dp86, dp79, d82
+                                
+                                proof by case analysis on d85:
+                                    case or o10: (s (s n4)) = n7 is
+                                        use inversion of eq on o10
+                                        where n7 := s s n4
+                                        proof by contradiction on dp90
+                                    end case
+
+                                    case or o11: (s (s n4)) = (s n7) is
+                                        use inversion of eq on o11
+                                        where n7 := s n4
+                                        
+                                        d86: n4 <  s n4 by rule less-one
+                                        d87: max s n4 n4 = s n4 by rule max-n2-less on d86
+                                        d88: n9 = s n4 by theorem max-unique on dp81, d87
+                                        use inversion of eq on d88
+                                        where n9 := s n4
+                                        proof by case analysis on dp78:
+                                            case rule
+                                                dp91: h t6 = n15
+                                                dp92: h t7 = n16
+                                                dp93: max n15 n16 = n4
+                                                ------------------ node-height
+                                                _: h (t6 n6 t7) = (s n4)
+                                            is
+                                                proof by case analysis on dp93:
+                                                    case rule
+                                                        dp94: n15 < n4
+                                                        ---------------- max-n1-less
+                                                        _: max n15 n4 = n4
+                                                        where n16 := n4
+                                                    is
+                                                        d92: max n4 n15 = n4 by rule max-n2-less on dp94
+                                                        d93: h (t4 n5 t6) = s n4 by rule node-height on dp77, dp91, d92
+                                                        d94: n10 = s n4 by theorem height-unique on dp82, d93
+                                                        use inversion of eq on d94
+                                                        where n10 := s n4
+                                                        d95: n4 = n4 by rule eq 
+                                                        d96: max n4 n4 = n4 by rule max-equal on d95
+                                                        d97: h (t7 n0 t3) = s n4 by rule node-height on dp92, dp73, d96
+                                                        d98: n11 = s n4 by theorem height-unique on dp83, d97
+                                                        use inversion of eq on d98
+                                                        where n11 := s n4
+                                                        
+                                                        d99: s n4 = s n4 by rule eq
+                                                        d123: max s n4 s n4 = s n4 by rule max-equal on d99
+                                                        d124: n12 = s n4 by theorem max-unique on dp84, d123
+                                                        use inversion of eq on d124
+                                                        where n12 := s n4
+                                                        
+                                                        d127: s s n4 = s s n4 by rule eq
+                                                    end case
+
+                                                    case rule
+                                                        dp95: n16 < n4
+                                                        ---------------- max-n2-less
+                                                        _: max n4 n16 = n4
+                                                        where n15 := n4
+                                                    is
+                                                        d128: max n16 n4 = n4 by rule max-n1-less on dp95
+                                                        d129: h (t7 n0 t3) = s n4 by rule node-height on dp92, dp73, d128
+                                                        d130: n11 = s n4 by theorem height-unique on dp83, d129
+                                                        use inversion of eq on d130
+                                                        where n11 := s n4
+                                                        
+                                                        d134: n4 = n4 by rule eq
+                                                        d131: max n4 n4 = n4 by rule max-equal on d134                                                      
+                                                        d132: h (t4 n5 t6) = s n4 by rule node-height on dp77, dp91, d131
+                                                        d133: n10 = s n4 by theorem height-unique on dp82, d132
+                                                        use inversion of eq on d133
+                                                        where n10 := s n4
+                                                        
+                                                        d135: s n4 = s n4 by rule eq
+                                                        d136: max s n4 s n4 = s n4 by rule max-equal on d135
+                                                        d137: n12 = s n4 by theorem max-unique on dp84, d136
+                                                        use inversion of eq on d137
+                                                        where n12 := s n4
+                                                        
+                                                        d138: s s n4 = s s n4 by rule eq
+                                                    end case
+
+                                                    case rule
+                                                        dp96: n4 = n16
+                                                        ---------------- max-equal
+                                                        _: max n4 n16 = n4
+                                                        where n15 := n4
+                                                    is
+                                                        use inversion of eq on dp96
+                                                        where n4 := n16
+                                                        
+                                                        d140: max n4 n4 = n4 by rule max-equal on dp96
+                                                        d141: h (t7 n0 t3) = s n4 by rule node-height on dp92, dp73, d140
+                                                        d142: n11 = s n4 by theorem height-unique on dp83, d141
+                                                        use inversion of eq on d142
+                                                        where n11 := s n16
+                                                        d143: h (t4 n5 t6) = s n4 by rule node-height on dp77, dp91, d140
+                                                        d144: n10 = s n4 by theorem height-unique on dp82, d143
+                                                        use inversion of eq on d144
+                                                        where n10 := s n16
+                                                        
+                                                        d145: s n4 = s n4 by rule eq
+                                                        d146: max s n4 s n4 = s n4 by rule max-equal on d145
+                                                        d147: n12 = s n4 by theorem max-unique on dp84, d146
+                                                        use inversion of eq on d147
+                                                        where n12 := s n16
+                                                        
+                                                        d148: s s n16 = s s n16 by rule eq
+                                                    end case                                               
+                                                end case analysis
+                                            end case
+                                        end case analysis                                         
+                                    end case                               
+                                end case analysis
+                            end case     
+                        end case analysis
+                    end case
+                end case analysis
+            end case                               
+        end case analysis           
+    end case
+
+    case rule
+        p20: n0 < n2
+        p21: t0 + n2 = t2
+        p22: h t3 = n3
+        p23: h t2 = n4
+        p24: (s n3) < n4
+        p25: t2 = (t4 n5 t5)
+        p26: t4 = (t6 n6 t7)
+        p27: h t4 = (s n3)
+        p28: h t5 = n3
+        ------------------- add-right-double-rotate
+        _: (t3 n0 t0) + n2 = ((t3 n0 t6) n6 (t7 n5 t5))
+        where t1 := (t3 n0 t0)
+        and t1' := ((t3 n0 t6) n6 (t7 n5 t5))
+    is
+        use inversion of tree-eq on p25
+        where t2 := t4 n5 t5
+
+        d90: n3 < s n3 by rule less-one
+        d91: max s n3 n3 = s n3 by rule max-n2-less on d90
+        d92: h t4 n5 t5 = s s n3 by rule node-height on p27,p28, d91
+        d93: n4 = s s n3 by theorem height-unique on p23, d92
+        use inversion of tree-eq on p26 
+        where t4 := t6 n6 t7
+        
+        use inversion of eq on d93 
+        where n4 := s s n3
+        proof by case analysis on d2:
+            case rule
+                p29: h t3 = n7
+                p30: h t0 = n8
+                p31: max n7 n8 = n9
+                ------------------ node-height
+                _: h (t3 n0 t0) = (s n9)
+                where n1 := s n9
+            is
+                proof by case analysis on d3:
+                    case rule
+                        p32: h (t3 n0 t6) = n10
+                        p33: h (t7 n5 t5) = n11
+                        p34: max n10 n11 = n12
+                        ------------------ node-height
+                        _: h ((t3 n0 t6) n6 (t7 n5 t5)) = (s n12)
+                        where n1' := s n12
+                    is
+                        proof by case analysis on a1:
+                            case rule
+                                p35: AVL t3
+                                p36: AVL t0
+                                p37: h t3 = n13
+                                p38: h t0 = n14
+                                p39: n13 ~ n14
+                                ----------------- AVL-node
+                                _: AVL (t3 n0 t0)
+                            is
+                                d94: n7 = n3 by theorem height-unique on p29, p22
+                                use inversion of eq on d94
+                                where n7 := n3
+                                
+                                d95: n13 = n3 by theorem height-unique on p37, p22
+                                use inversion of eq on d95
+                                where n13 := n3
+                                
+                                d150: n14 = n8 by theorem height-unique on p38, p30
+                                use inversion of eq on d150
+                                where n14 := n8
+                                
+                                d151:s s n3 = n8 or s s n3 = s n8 by induction hypothesis on p21, p36, p38, d92
+                                proof by case analysis on d151:
+                                    case or o12: (s (s n3)) = n8 is
+                                        use inversion of eq on o12
+                                        where n8 := s s n3
+                                        proof by contradiction on p39
+                                    end case
+
+                                    case or o13: (s (s n3)) = (s n8) is
+                                        use inversion of eq on o13
+                                        where n8 := s n3
+                                        
+                                        d159: n3 < s n3 by rule less-one
+                                        d160: max n3 s n3 = s n3 by rule max-n1-less on d159
+                                        d161: n9 = s n3 by theorem max-unique on p31, d160
+                                        use inversion of eq on d161
+                                        where n9 := s n3
+                                        
+                                        proof by case analysis on p27:
+                                            case rule
+                                                p40: h t6 = n15
+                                                p41: h t7 = n16
+                                                p42: max n15 n16 = n3
+                                                ------------------ node-height
+                                                _: h (t6 n6 t7) = (s n3)
+                                            is
+                                                proof by case analysis on p42:
+                                                    case rule
+                                                        p43: n15 < n3
+                                                        ---------------- max-n1-less
+                                                        _: max n15 n3 = n3
+                                                        where n16 := n3
+                                                    is
+                                                        d152: max n3 n15 = n3 by rule max-n2-less on p43
+                                                        d153: h t3 n0 t6 = s n3 by rule node-height on p22, p40, d152
+                                                        d154: n10 = s n3 by theorem height-unique on p32, d153
+                                                        use inversion of eq on d154
+                                                        where n10 := s n3
+                                                        
+                                                        d155: n3 = n3 by rule eq
+                                                        d156: max n3 n3 = n3 by rule max-equal on d155
+                                                        d157: h t7 n5 t5 = s n3 by rule node-height on p41, p28, d156
+                                                        d158: n11 = s n3 by theorem height-unique on p33, d157
+                                                        use inversion of eq on d158
+                                                        where n11 := s n3
+                                                        
+                                                        d162: s n3 = s n3 by rule eq
+                                                        d163: max s n3 s n3 = s n3 by rule max-equal on d162
+                                                        d164: n12 = s n3 by theorem max-unique on p34, d163
+                                                        use inversion of eq on d164
+                                                        where n12 := s n3 
+                                                        
+                                                        d165: s s n3 = s s n3 by rule eq
+                                                    end case
+
+                                                    case rule
+                                                        p44: n16 < n3
+                                                        ---------------- max-n2-less
+                                                        _: max n3 n16 = n3
+                                                        where n15 := n3
+                                                    is
+                                                        d165: n3 = n3 by rule eq
+                                                        d166: max n3 n3 = n3 by rule max-equal on d165
+                                                        d167: h t3 n0 t6 = s n3 by rule node-height on p22, p40, d166
+                                                        d168: n10 = s n3 by theorem height-unique on p32, d167
+                                                        use inversion of eq on d168
+                                                        where n10 := s n3
+                                                        
+                                                        d169: max n16 n3 = n3 by rule max-n1-less on p44
+                                                        d170: h t7 n5 t5 = s n3 by rule node-height on p41, p28, d169
+                                                        d171: n11 = s n3 by theorem height-unique on p33, d170
+                                                        use inversion of eq on d171
+                                                        where n11 := s n3
+                                                        
+                                                        d172: s n3 = s n3 by rule eq
+                                                        d173: max s n3 s n3 = s n3 by rule max-equal on d172
+                                                        d174: n12 = s n3 by theorem max-unique on p34, d173
+                                                        use inversion of eq on d174
+                                                        where n12 := s n3 
+                                                        
+                                                        d175: s s n3 = s s n3 by rule eq
+                                                    end case
+
+                                                    case rule
+                                                        p45: n3 = n16
+                                                        ---------------- max-equal
+                                                        _: max n3 n16 = n3
+                                                        where n15 := n3
+                                                    is
+                                                        d176: n3 = n3 by rule eq
+                                                        d177: max n3 n3 = n3 by rule max-equal on d176
+                                                        d178: h t3 n0 t6 = s n3 by rule node-height on p22, p40, d177
+                                                        d179: n10 = s n3 by theorem height-unique on p32, d178
+                                                        use inversion of eq on d179
+                                                        where n10 := s n3
+                                                        
+                                                        use inversion of eq on p45
+                                                        where n3 := n16
+                                                        
+                                                        d180: max n16 n3 = n3 by rule max-equal on p45
+                                                        d181: h t7 n5 t5 = s n3 by rule node-height on p41, p28, d180
+                                                        d182: n11 = s n3 by theorem height-unique on p33, d181
+                                                        use inversion of eq on d182
+                                                        where n11 := s n16
+                                                        
+                                                        d183: s n16 = s n16 by rule eq
+                                                        d184: max s n16 s n16 = s n16 by rule max-equal on d183
+                                                        d185: n12 = s n16 by theorem max-unique on p34, d184
+                                                        use inversion of eq on d185
+                                                        where n12 := s n16
+                                                        
+                                                        d186: s s n16 = s s n16 by rule eq
+                                                    end case
+                                                end case analysis    
+                                            end case                                            
+                                        end case analysis    
+                                    end case  
+                                end case analysis
+                            end case  
+                        end case analysis    
+                    end case
+                end case analysis
+            end case         
+        end case analysis
+    end case
+end induction
+end theorem
+
+theorem close-symmetric: forall d1: n ~ n' exists n' ~ n.
+proof by induction on d1:
+    case rule
+        ----------------- n-close-to-succ
+        _: n ~ (s n)
+        where n' := s n
+    is
+        d2: s n ~ n by rule succ-close-to-n
+    end case
+
+    case rule
+        ----------------- n-close-to-n
+        dc: n' ~ n'
+        where n := n'
+    is
+        proof by dc
+    end case
+
+    case rule
+        ----------------- succ-close-to-n
+        _: (s n') ~ n'
+        where n := s n'
+    is
+        d2: n' ~ s n' by rule n-close-to-succ
+    end case    
+end induction    
+end theorem
+
+
+theorem insertion-AVL-preserved: forall d1: AVL t forall d2: t + n = t' exists AVL t'.
+proof by induction on d2:
+
+    case rule
+        ---------------- insert-to-null
+        _: null + n = (null n null)
+        where t := null
+        and t' := null n null
+    is
+        d3: AVL null by rule AVL-null
+        d4: h null = z by rule null-height
+        d5: z ~ z by rule n-close-to-n
+        d6: AVL null n null by rule AVL-node on d3, d3, d4, d4, d5       
+    end case
+
+    case rule
+        ----------------- add-duplicate
+        _: (t1 n t2) + n = (t1 n t2)
+        where t := t1 n t2
+        and t' := t1 n t2
+    is
+        proof by d1
+    end case
+
+    case rule
+        dp7: n < n0
+        dp8: t1 + n = t1'
+        dp9: h t1' = n1'
+        dp10: h t2 = n2
+        dp11: n1' ~ n2
+        ----------------- add-left-no-rotate
+        _: (t1 n0 t2) + n = (t1' n0 t2)
+        where t := t1 n0 t2
+        and t' := t1' n0 t2
+    is
+        proof by case analysis on d1:
+            case rule
+                dp12: AVL t1
+                dp13: AVL t2
+                dp14: h t1 = n1
+                dp15: h t2 = n2'
+                dp16: n1 ~ n2'
+                ----------------- AVL-node
+                _: AVL (t1 n0 t2)
+            is
+                d7: n2 = n2' by theorem height-unique on dp10, dp15
+                use inversion of eq on d7
+                where n2 := n2'
+                
+                d8: n1' = n1 or n1' = s n1 by theorem height-increase on dp8, dp12, dp14, dp9
+                d9: AVL t1' by induction hypothesis on dp12, dp8
+                proof by case analysis on d8:
+                    case or o1: n1' = n1 is
+                        use inversion of eq on o1
+                        where n1' := n1
+                        
+                        d10: AVL t1' n0 t2 by rule AVL-node on d9, dp13, dp9, dp15, dp16  
+                    end case
+
+                    case or o2: n1' = (s n1) is
+                        use inversion of eq on o2
+                        where n1' := s n1
+
+                        d11: AVL t1' n0 t2 by rule AVL-node on d9, dp13, dp9, dp10, dp11                                                  
+                    end case 
+                end case analysis      
+            end case   
+        end case analysis
+    end case
+    
+        case rule
+        dp1: n0 < n
+        dp2: t2 + n = t2'
+        dp3: h t1 = n1
+        dp4: h t2' = n2'
+        dp5: n1 ~ n2'
+        ----------------- add-right-no-rotate
+        _: (t1 n0 t2) + n = (t1 n0 t2')
+        where t := t1 n0 t2
+        and t' := t1 n0 t2'
+    is
+        proof by case analysis on d1:
+            case rule
+                dp6: AVL t1
+                dp7: AVL t2
+                dp8: h t1 = n1'
+                dp9: h t2 = n2
+                dp10: n1' ~ n2
+                ----------------- AVL-node
+                _: AVL (t1 n0 t2)
+            is
+                d3: n1' = n1 by theorem height-unique on dp8, dp3
+                use inversion of eq on d3
+                where n1' := n1
+                
+                d4: AVL t2' by induction hypothesis on dp7, dp2
+                d5: n2' = n2 or n2' = s n2 by theorem height-increase on dp2, dp7, dp9, dp4
+                proof by case analysis on d5:
+                    case or o1: n2' = n2 is
+                        use inversion of eq on o1
+                        where n2' := n2
+                        
+                        d6: AVL t1 n0 t2' by rule AVL-node on dp6, d4, dp3, dp4, dp5
+                    end case
+
+                    case or o2: n2' = (s n2) is
+                        use inversion of eq on o2
+                        where n2' := s n2
+                        
+                        d7: AVL t1 n0 t2' by rule AVL-node on dp6, d4, dp3, dp4, dp5
+                    end case
+
+                end case analysis    
+            end case  
+        end case analysis
+    end case
+
+    case rule
+        dp1: n < n0
+        dp2: t1 + n = t1'
+        dp3: h t1' = n1'
+        dp4: h t2 = n2
+        dp5: (s n2) < n1'
+        dp6: t1' = (t11 n11 t12)
+        dp7: h t11 = (s n2)
+        dp8: h t12 = n2
+        ----------------- add-left-single-rotate
+        _: (t1 n0 t2) + n = (t11 n11 (t12 n0 t2))
+        where t := t1 n0 t2
+        and t' := (t11 n11 (t12 n0 t2))
+    is
+        use inversion of tree-eq on dp6
+        where t1' := t11 n11 t12
+        proof by case analysis on d1:
+            case rule
+                dp9: AVL t1
+                dp10: AVL t2
+                dp11: h t1 = n1
+                dp12: h t2 = n2'
+                dp13: n1 ~ n2'
+                ----------------- AVL-node
+                _: AVL (t1 n0 t2)
+            is
+                d3: n2' = n2 by theorem height-unique on dp12, dp4
+                use inversion of eq on d3
+                where n2' := n2
+                
+                d4: AVL t1' by induction hypothesis on dp9, dp2
+
+
+                proof by case analysis on d4:
+                    case rule
+                        dp14: AVL t11
+                        dp15: AVL t12
+                        dp16: h t11 = n3
+                        dp17: h t12 = n4
+                        dp18: n3 ~ n4
+                        ----------------- AVL-node
+                        _: AVL (t11 n11 t12)
+                    is
+                        d5: n3 = s n2 by theorem height-unique on dp16, dp7
+                        use inversion of eq on d5
+                        where n3 := s n2
+                        d6: n4 = n2 by theorem height-unique on dp17, dp8
+                        use inversion of eq on d6
+                        where n4 := n2
+                        
+                        d7: n2 ~ n2 by rule n-close-to-n 
+                        d8: AVL (t12 n0 t2) by rule AVL-node on dp15, dp10, dp8, dp4, d7
+                        d9: n2 = n2 by rule eq
+                        d10: max n2 n2 = n2 by rule max-equal on d9
+                        d11: h (t12 n0 t2) = s n2 by rule node-height on dp8, dp4, d10
+                        d12: s n2 ~ s n2 by rule n-close-to-n
+                        d13: AVL (t11 n11 (t12 n0 t2)) by rule AVL-node on dp14, d8, dp16, d11, d12 
+                    end case
+                end case analysis     
+            end case
+
+        end case analysis
+    end case
+
+    case rule
+        dp1: n0 < n
+        dp2: t2 + n = t2'
+        dp3: h t1 = n1
+        dp4: h t2' = n2'
+        dp5: (s n1) < n2'
+        dp6: t2' = (t21 n21 t22)
+        dp7: h t21 = n1
+        dp8: h t22 = (s n1)
+        ------------------- add-right-single-rotate
+        _: (t1 n0 t2) + n = ((t1 n0 t21) n21 t22)
+        where t := t1 n0 t2
+        and t' := ((t1 n0 t21) n21 t22)
+    is
+        use inversion of tree-eq on dp6
+        where t2' := t21 n21 t22
+        proof by case analysis on d1:
+            case rule
+                dp9: AVL t1
+                dp10: AVL t2
+                dp11: h t1 = n3
+                dp12: h t2 = n4
+                dp13: n3 ~ n4
+                ----------------- AVL-node
+                _: AVL (t1 n0 t2)                
+            is
+                d3: n3 = n1 by theorem height-unique on dp11, dp3
+                use inversion of eq on d3
+                where n3 := n1
+                
+                d4: AVL t2' by induction hypothesis on dp10, dp2
+                proof by case analysis on d4:
+                    case rule
+                        dp14: AVL t21
+                        dp15: AVL t22
+                        dp16: h t21 = n2
+                        dp17: h t22 = n5
+                        dp18: n2 ~ n5
+                        ----------------- AVL-node
+                        _: AVL (t21 n21 t22)
+                    is
+                        d5: n2 = n1 by theorem height-unique on dp16, dp7
+                        use inversion of eq on d5
+                        where n2 := n1
+                        
+                        d6: n5 = s n1 by theorem height-unique on dp17, dp8
+                        use inversion of eq on d6
+                        where n5 := s n1
+                        
+                        d7: n1 ~ n1 by rule n-close-to-n
+                        d8: AVL (t1 n0 t21) by rule AVL-node on dp9, dp14, dp3, dp7, d7
+                        
+                        d9: n1 = n1 by rule eq
+                        d10: max n1 n1 = n1 by rule max-equal on d9
+                        d11: h (t1 n0 t21) = s n1 by rule node-height on dp3, dp7, d10
+                        d12: s n1 ~ s n1 by rule n-close-to-n
+                        d13: AVL ((t1 n0 t21) n21 t22) by rule AVL-node on d8, dp15, d11, dp8, d12
+                    end case
+
+                end case analysis    
+            end case
+        end case analysis
+    end case
+
+    case rule
+        dp1: n < n0
+        dp2: t1 + n = t1'
+        dp3: h t1' = n1'
+        dp4: h t2 = n2
+        dp5: (s n2) < n1'
+        dp6: t1' = (t11 n11 t12)
+        dp7: t12 = (t13 n12 t14)
+        dp8: h t11 = n2
+        dp9: h t12 = (s n2)
+        ------------------- add-left-double-rotate
+        _: (t1 n0 t2) + n = ((t11 n11 t13) n12 (t14 n0 t2))
+        where t := t1 n0 t2
+        and t' := ((t11 n11 t13) n12 (t14 n0 t2))
+    is
+        use inversion of tree-eq on dp6
+        where t1' := t11 n11 t12
+        use inversion of tree-eq on dp7
+        where t12 := t13 n12 t14
+        
+        proof by case analysis on d1:
+            case rule
+                dp10: AVL t1
+                dp11: AVL t2
+                dp12: h t1 = n1
+                dp13: h t2 = n4
+                dp14: n1 ~ n4
+                ----------------- AVL-node
+                _: AVL (t1 n0 t2)
+            is
+                d3: n4 = n2 by theorem height-unique on dp13, dp4
+                use inversion of eq on d3
+                where n4 := n2
+                
+                d4: AVL t1' by induction hypothesis on dp10, dp2
+                proof by case analysis on d4:
+                    case rule
+                        dp15: AVL t11
+                        dp16: AVL (t13 n12 t14)
+                        dp17: h t11 = n3
+                        dp18: h (t13 n12 t14) = n5
+                        dp19: n3 ~ n5
+                        ----------------- AVL-node
+                        _: AVL (t11 n11 (t13 n12 t14))
+                    is
+                        d5: n3 = n2 by theorem height-unique on dp17, dp8
+                        use inversion of eq on d5
+                        where n3 := n2
+                        d6: n5 = s n2 by theorem height-unique on dp18, dp9
+                        use inversion of eq on d6
+                        where n5 := s n2
+                        
+                        proof by case analysis on dp16:
+                            case rule
+                                dp20: AVL t13
+                                dp21: AVL t14
+                                dp22: h t13 = n6
+                                dp23: h t14 = n7
+                                dp24: n6 ~ n7
+                                ----------------- AVL-node
+                                _: AVL (t13 n12 t14)
+                            is
+                                proof by case analysis on dp18:
+                                    case rule
+                                        dp25: h t13 = n8
+                                        dp26: h t14 = n9
+                                        dp27: max n8 n9 = n2
+                                        ------------------ node-height
+                                        _: h (t13 n12 t14) = (s n2)
+                                    is
+                                        d7: n6 = n8 by theorem height-unique on dp22, dp25
+                                        use inversion of eq on d7
+                                        where n6 := n8
+                                        d8: n7 = n9 by theorem height-unique on dp23, dp26
+                                        use inversion of eq on d8
+                                        where n7 := n9
+                                        
+                                        proof by case analysis on dp27: 
+                                            case rule
+                                                dp28: n8 < n2
+                                                ---------------- max-n1-less
+                                                _: max n8 n2 = n2
+                                                where n9 := n2
+                                            is
+                                                
+                                                d9: n2 ~ n8 by theorem close-symmetric on dp24
+                                                d10: AVL t11 n11 t13 by rule AVL-node on dp15, dp20, dp8, dp25, d9
+                                                
+                                                d11: max n2 n8 = n2 by rule max-n2-less on dp28
+                                                d12: h t11 n11 t13 = s n2 by rule node-height on dp8, dp25, d11 
+                                                
+                                                d14: n9 ~ n2 by rule n-close-to-n
+                                                d15: AVL t14 n0 t2 by rule AVL-node on dp21, dp11, dp26, dp4, d14
+                                                d16: n9 = n2 by rule eq
+                                                d17: max n9 n2 = n2 by rule max-equal on d16
+                                                d18: h t14 n0 t2 = s n2 by rule node-height on dp26, dp4, d17
+                                                
+                                                d19: s n2 ~ s n2 by rule n-close-to-n
+                                                d20: AVL ((t11 n11 t13) n12 (t14 n0 t2)) by rule AVL-node on d10, d15, d12, d18, d19
+                                            end case
+
+                                            case rule
+                                                dp29: n9 < n2
+                                                ---------------- max-n2-less
+                                                _: max n2 n9 = n2
+                                                where n8 := n2
+                                            is
+                                                d9: n2 ~ n8 by rule n-close-to-n
+                                                d10: AVL t11 n11 t13 by rule AVL-node on dp15, dp20, dp8, dp25, d9
+                                                d11: n8 = n2 by rule eq
+                                                d12: max n2 n8 = n2 by rule max-equal on d11
+                                                d13: h t11 n11 t13 = s n2 by rule node-height on dp8, dp25, d12 
+                                                
+                                                
+                                                d14: n9 ~ n2 by theorem close-symmetric on dp24
+                                                d15: AVL t14 n0 t2 by rule AVL-node on dp21, dp11, dp26, dp4, d14
+                                                d16: max n9 n2 = n2 by rule max-n1-less on dp29
+                                                d17: h t14 n0 t2 = s n2 by rule node-height on dp26, dp4, d16
+                                                
+                                                d18: s n2 ~ s n2 by rule n-close-to-n
+                                                d19: AVL ((t11 n11 t13) n12 (t14 n0 t2)) by rule AVL-node on d10, d15, d13, d17, d18
+                                            end case
+
+                                            case rule
+                                                dp30: n2 = n9
+                                                ---------------- max-equal
+                                                _: max n2 n9 = n2
+                                                where n8 := n2
+                                            is
+                                                use inversion of eq on dp30
+                                                where n2 := n9
+                                                
+                                                d9: n2 ~ n8 by rule n-close-to-n
+                                                d10: AVL t11 n11 t13 by rule AVL-node on dp15, dp20, dp8, dp25, d9
+                                                d11: n8 = n2 by rule eq
+                                                d12: max n2 n8 = n2 by rule max-equal on d11
+                                                d13: h t11 n11 t13 = s n2 by rule node-height on dp8, dp25, d12 
+                                                
+                                                d14: n9 ~ n2 by rule n-close-to-n
+                                                d15: AVL t14 n0 t2 by rule AVL-node on dp21, dp11, dp26, dp4, d14
+                                                d16: n9 = n2 by rule eq
+                                                d17: max n9 n2 = n2 by rule max-equal on d16
+                                                d18: h t14 n0 t2 = s n2 by rule node-height on dp26, dp4, d17
+                                                
+                                                d19: s n2 ~ s n2 by rule n-close-to-n
+                                                d20: AVL ((t11 n11 t13) n12 (t14 n0 t2)) by rule AVL-node on d10, d15, d13, d18, d19
+                                            end case
+
+                                        end case analysis
+                                    end case
+                                end case analysis
+                            end case
+                        end case analysis    
+                    end case
+                end case analysis
+            end case
+
+        end case analysis    
+    end case
+
+    case rule
+        dp1: n0 < n
+        dp2: t2 + n = t2'
+        dp3: h t1 = n1
+        dp4: h t2' = n2
+        dp5: (s n1) < n2
+        dp6: t2' = (t21 n21 t22)
+        dp7: t21 = (t23 n22 t24)
+        dp8: h t21 = (s n1)
+        dp9: h t22 = n1
+        ------------------- add-right-double-rotate
+        _: (t1 n0 t2) + n = ((t1 n0 t23) n22 (t24 n21 t22))
+        where t := t1 n0 t2
+        and t' := ((t1 n0 t23) n22 (t24 n21 t22))
+        
+    is
+        use inversion of tree-eq on dp6
+        where t2' := t21 n21 t22
+        use inversion of tree-eq on dp7
+        where t21 := t23 n22 t24
+        
+        proof by case analysis on d1:
+            case rule
+                dp10: AVL t1
+                dp11: AVL t2
+                dp12: h t1 = n3
+                dp13: h t2 = n4
+                dp14: n3 ~ n4
+                ----------------- AVL-node
+                _: AVL (t1 n0 t2)
+            is
+                d3: n3 = n1 by theorem height-unique on dp12, dp3
+                use inversion of eq on d3
+                where n3 := n1
+                
+                d4: AVL t2' by induction hypothesis on dp11, dp2
+                
+                proof by case analysis on d4:
+                    case rule
+                        dp15: AVL (t23 n22 t24)
+                        dp16: AVL t22
+                        dp17: h (t23 n22 t24) = n5
+                        dp18: h t22 = n6
+                        dp19: n5 ~ n6
+                        ----------------- AVL-node
+                        _: AVL ((t23 n22 t24) n21 t22)
+                    is
+                        d6: n5 = s n1 by theorem height-unique on dp17, dp8
+                        use inversion of eq on d6
+                        where n5 := s n1
+                        
+                        d7: n6 = n1 by theorem height-unique on dp18, dp9
+                        use inversion of eq on d7
+                        where n6 := n1
+                        
+                        proof by case analysis on dp15:
+                            case rule
+                                dp20: AVL t23
+                                dp21: AVL t24
+                                dp22: h t23 = n7
+                                dp23: h t24 = n8
+                                dp24: n7 ~ n8 
+                                ----------------- AVL-node
+                                _: AVL (t23 n22 t24)
+                            is
+                                proof by case analysis on dp8: 
+                                    case rule
+                                        dp25: h t23 = n9
+                                        dp26: h t24 = n10
+                                        dp27: max n9 n10 = n1
+                                        ------------------ node-height
+                                        _: h (t23 n22 t24) = (s n1)
+                                    is
+                                        d8: n7 = n9 by theorem height-unique on dp22, dp25
+                                        use inversion of eq on d8
+                                        where n7 := n9
+                                        
+                                        d9: n8 = n10 by theorem height-unique on dp23, dp26
+                                        use inversion of eq on d9
+                                        where n8 := n10
+                                        
+                                        proof by case analysis on dp27:
+                                            case rule
+                                                dp28: n9 < n1
+                                                ---------------- max-n1-less
+                                                _: max n9 n1 = n1
+                                                where n10 := n1
+                                            is
+                                                d10: n1 ~ n9 by theorem close-symmetric on dp24
+                                                d11: n10 ~ n1 by rule n-close-to-n 
+                                                
+                                                d12: AVL t1 n0 t23 by rule AVL-node on dp10, dp20, dp3, dp25, d10
+                                                d13: AVL t24 n21 t22 by rule AVL-node on dp21, dp16, dp26, dp9, d11
+                                                
+                                                d14: max n1 n9 = n1 by rule max-n2-less on dp28
+                                                d15: h t1 n0 t23 = s n1 by rule node-height on dp3, dp25, d14
+                                                
+                                                d16: n10 = n1 by rule eq
+                                                d17: max n10 n1 = n1 by rule max-equal on d16
+                                                d18: h t24 n21 t22 = s n1 by rule node-height on dp26, dp9, d17
+                                                
+                                                d19: s n1 ~ s n1 by rule n-close-to-n
+                                                
+                                                d20: AVL ((t1 n0 t23) n22 (t24 n21 t22)) by rule AVL-node on d12, d13, d15, d18, d19
+                                            end case
+
+                                            case rule
+                                                dp28: n10 < n1
+                                                ---------------- max-n2-less
+                                                _: max n1 n10 = n1
+                                                where n9 := n1
+                                            is
+                                                d10: n1 ~ n9 by rule n-close-to-n
+                                                d11: n10 ~ n1 by theorem close-symmetric on dp24
+                                                
+                                                d12: AVL t1 n0 t23 by rule AVL-node on dp10, dp20, dp3, dp25, d10
+                                                d13: AVL t24 n21 t22 by rule AVL-node on dp21, dp16, dp26, dp9, d11
+                                                
+                                                d14: n1 = n9 by rule eq
+                                                d15: max n1 n9 = n1 by rule max-equal on d14
+                                                d16: h t1 n0 t23 = s n1 by rule node-height on dp3, dp25, d15
+                                                
+                                                d17: max n10 n1 = n1 by rule max-n1-less on dp28
+                                                d18: h t24 n21 t22 = s n1 by rule node-height on dp26, dp9, d17
+                                                
+                                                d19: s n1 ~ s n1 by rule n-close-to-n
+                                                
+                                                d20: AVL ((t1 n0 t23) n22 (t24 n21 t22)) by rule AVL-node on d12, d13, d16, d18, d19
+                                                
+                                            end case
+
+                                            case rule
+                                                dp28: n1 = n10
+                                                ---------------- max-equal
+                                                _: max n1 n10 = n1
+                                                where n9 := n1
+                                            is
+                                                use inversion of eq on dp28
+                                                where n1 := n10
+                                                
+                                                d10: n1 ~ n9 by rule n-close-to-n
+                                                d11: n10 ~ n1 by rule n-close-to-n
+                                                
+                                                d12: AVL t1 n0 t23 by rule AVL-node on dp10, dp20, dp3, dp25, d10
+                                                d13: AVL t24 n21 t22 by rule AVL-node on dp21, dp16, dp26, dp9, d11
+                                                
+                                                d14: n1 = n9 by rule eq
+                                                d15: max n1 n9 = n1 by rule max-equal on d14
+                                                d16: h t1 n0 t23 = s n1 by rule node-height on dp3, dp25, d15
+                                                
+                                                d17: n10 = n1 by rule eq
+                                                d18: max n10 n1 = n1 by rule max-equal on d17
+                                                d19: h t24 n21 t22 = s n1 by rule node-height on dp26, dp9, d18
+                                                
+                                                d20: s n1 ~ s n1 by rule n-close-to-n
+                                                
+                                                d21: AVL ((t1 n0 t23) n22 (t24 n21 t22)) by rule AVL-node on d12, d13, d16, d19, d20
+                                                
+                                            end case
+                                        end case analysis    
+                                    end case
+                                end case analysis
+                            end case
+                        end case analysis
+                    end case
+                 end case analysis
+            end case
+        end case analysis
+    end case   
+end induction
+end theorem
+
+theorem succ-lt-contradict: forall d1: s n < n exists contradiction.
+    d2: n < s n by rule less-one
+    proof by theorem anti-symmetric on n, d2, d1    
+end theorem
+
+
+
+theorem common-case:
+    forall d1: AVL t
+    forall d2: t + n' = t1' n11' t2'
+    forall d3: h t = s n
+    forall d4: h t1' = s n
+    forall d5: h t2' = s n
+    exists contradiction.
+    
+    proof by induction on d2:
+        case rule
+            ---------------- insert-to-null
+            _: null + n' = (null n' null)
+            where t := null
+            and t1' := null
+            and n11' := n'
+            and t2' := null
+        is
+            proof by contradiction on d3
+        end case
+
+        case rule
+            ----------------- add-duplicate
+            _: (t1' n' t2') + n' = (t1' n' t2')
+            where t := t1' n' t2' 
+            and n11' := n'
+        is
+            d6: s n = s n by rule eq
+            d7: max s n s n = s n by rule max-equal on d6
+            d8: h t = s s n by rule node-height on d4, d5, d7
+            d9: s s n = s n by theorem height-unique on d8, d3
+            proof by contradiction on d9
+        end case
+        
+        case rule
+            dp1: n' < n11'
+            dp2: t1 + n' = t1'
+            dp3: h t1' = n1
+            dp4: h t2' = n2
+            dp5: n1 ~ n2
+            ----------------- add-left-no-rotate
+            _: (t1 n11' t2') + n' = (t1' n11' t2')
+            where t := t1 n11' t2'
+        is
+            d6: n1 = s n by theorem height-unique on dp3, d4
+            use inversion of eq on d6
+            where n1 := s n
+            d7: n2 = s n by theorem height-unique on dp4, d5
+            use inversion of eq on d7
+            where n2 := s n
+            
+            proof by case analysis on d3:
+                case rule
+                    dp6: h t1 = n0
+                    dp7: h t2' = n3
+                    dp8: max n0 n3 = n
+                    ------------------ node-height
+                    _: h (t1 n11' t2') = (s n)
+                is
+                    d8: n3 = s n by theorem height-unique on dp7, d5
+                    use inversion of eq on d8
+                    where n3 := s n
+                    proof by case analysis on dp8:
+                        case rule
+                            dp9: (s n) < n
+                            ---------------- max-n2-less
+                            _: max n (s n) = n
+                            where n0 := n
+                        is
+                            proof by theorem succ-lt-contradict on dp9
+                        end case
+
+                        case rule
+                            dp9: n = (s n)
+                            ---------------- max-equal
+                            _: max n (s n) = n
+                            where n0 := n
+                        is
+                            proof by contradiction on dp9
+                        end case
+
+                    end case analysis 
+                end case
+            end case analysis
+        end case
+
+        case rule
+            dp1: n11' < n'
+            dp2: t2 + n' = t2'
+            dp3: h t1' = n1
+            dp4: h t2' = n2
+            dp5: n1 ~ n2
+            ----------------- add-right-no-rotate
+            _: (t1' n11' t2) + n' = (t1' n11' t2')
+            where t := t1' n11' t2
+        is
+            d6: n1 = s n by theorem height-unique on dp3, d4
+            use inversion of eq on d6
+            where n1 := s n
+            d7: n2 = s n by theorem height-unique on dp4, d5
+            use inversion of eq on d7
+            where n2 := s n
+            
+            proof by case analysis on d3:
+                case rule
+                    dp6: h t1' = n0
+                    dp7: h t2 = n3
+                    dp8: max n0 n3 = n
+                    ------------------ node-height
+                    _: h (t1' n11' t2) = (s n)
+                is
+                    d8: n0 = s n by theorem height-unique on dp6, d4
+                    use inversion of eq on d8
+                    where n0 := s n
+                    
+                    proof by case analysis on dp8:
+                        case rule
+                            dp9: (s n) < n
+                            ---------------- max-n1-less
+                            _: max (s n) n = n
+                            where n3 := n
+                        is
+                            proof by theorem succ-lt-contradict on dp9
+                        end case
+                    end case analysis
+                end case
+
+            end case analysis 
+        end case
+
+        case rule
+            dp1: n' < n0
+            dp2: t1 + n' = t11
+            dp3: h t11 = n1
+            dp4: h t2 = n2
+            dp5: (s n2) < n1
+            dp6: t11 = (t1' n11' t12)
+            dp7: h t1' = (s n2)
+            dp8: h t12 = n2
+            ----------------- add-left-single-rotate
+            _: (t1 n0 t2) + n' = (t1' n11' (t12 n0 t2))
+            where t := t1 n0 t2
+            and t2' := (t12 n0 t2)
+        is
+            proof by case analysis on d1:
+                case rule
+                    dp9: AVL t1
+                    dp10: AVL t2
+                    dp11: h t1 = n3
+                    dp12: h t2 = n4
+                    dp13: n3 ~ n4
+                    ----------------- AVL-node
+                    _: AVL (t1 n0 t2)
+                is
+                    
+                                        
+                    use inversion of tree-eq on dp6
+                    where t11 := t1' n11' t12
+            
+                    d6: s n = s n2 by theorem height-unique on d4, dp7
+                    use inversion of eq on d6
+                    where n2 := n
+            
+                    d7: n < s n by rule less-one
+                    d8: max s n n = s n by rule max-n2-less on d7
+                    d9: h t11 = s s n by rule node-height on d4, dp8, d8
+                    d10: n1 = s s n by theorem height-unique on dp3, d9
+                    use inversion of eq on d10
+                    where n1 := s s n
+                    
+                    
+                    d: n4 = n2 by theorem height-unique on dp12, dp4
+                    use inversion of eq on d
+                    where n4 := n
+           
+                    d11: s s n = n3 or s s n = s n3 by theorem height-increase on dp2, dp9, dp11, d9
+                    proof by case analysis on d11:
+                        case or o1: (s (s n)) = n3 is
+                            use inversion of eq on o1
+                            where n3 := s s n
+                            proof by contradiction on dp13
+                        end case
+
+                        case or o2: (s (s n)) = (s n3) is
+                            use inversion of eq on o2
+                            where n3 := s n
+                            
+                            d12: n < s n by rule less-one
+                            d13: max s n n = s n by rule max-n2-less on d12
+                            d14: h t1 n0 t2 = s s n by rule node-height on dp11, dp12, d13
+                            d15: s n = s s n by theorem height-unique on d3, d14
+                            
+                            proof by contradiction on d15
+                        end case
+                    end case analysis
+            end case 
+        end case analysis
+    end case
+
+    case rule
+        dp1: n0 < n'
+        dp2: t2 + n' = t0
+        dp3: h t1 = n1
+        dp4: h t0 = n2
+        dp5: (s n1) < n2
+        dp6: t0 = (t21 n11' t2')
+        dp7: h t21 = n1
+        dp8: h t2' = (s n1)
+        ------------------- add-right-single-rotate
+        _: (t1 n0 t2) + n' = ((t1 n0 t21) n11' t2')
+        where t := t1 n0 t2
+        and t1' := t1 n0 t21
+    is
+        proof by case analysis on d1:
+            case rule
+                dp9: AVL t1
+                dp10: AVL t2
+                dp11: h t1 = n3
+                dp12: h t2 = n4
+                dp13: n3 ~ n4
+                ----------------- AVL-node
+                _: AVL (t1 n0 t2)
+            is
+                use inversion of tree-eq on dp6
+                where t0 := t21 n11' t2'
+                
+                d6: s n = s n1 by theorem height-unique on d5, dp8
+                use inversion of eq on d6
+                where n1 := n
+                
+                d7: n < s n by rule less-one
+                d8: max n s n = s n by rule max-n1-less on d7
+                d9: h t0 = s s n by rule node-height on dp7, d5, d8
+                d10: n2 = s s n by theorem height-unique on dp4, d9
+                use inversion of eq on d10
+                where n2 := s s n
+                
+                d11: n3 = n1 by theorem height-unique on dp11, dp3
+                use inversion of eq on d11
+                where n3 := n
+                
+                d12: s s n = n4 or s s n = s n4 by theorem height-increase on dp2, dp10, dp12, d9
+                 
+                proof by case analysis on d12:
+                    case or o1: (s (s n)) = n4 is
+                        use inversion of eq on o1
+                        where n4 := s s n
+                        
+                        proof by contradiction on dp13
+                    end case
+
+                    case or o2: (s (s n)) = (s n4) is
+                        use inversion of eq on o2
+                        where n4 := s n
+                        
+                        d13: n < s n by rule less-one 
+                        d14: max n s n = s n by rule max-n1-less on d13
+                        d15: h t = s s n by rule node-height on dp11, dp12, d14
+                        d16: s n = s s n by theorem height-unique on d3, d15
+                        
+                        proof by contradiction on d16
+                    end case
+                end case analysis
+            end case
+        end case analysis
+    end case
+
+    case rule
+        dp1: n' < n0
+        dp2: t1 + n' = t0
+        dp3: h t0 = n1
+        dp4: h t2 = n2
+        dp5: (s n2) < n1
+        dp6: t0 = (t11 n11 t12)
+        dp7: t12 = (t13 n11' t14)
+        dp8: h t11 = n2
+        dp9: h t12 = (s n2)
+        ------------------- add-left-double-rotate
+        _: (t1 n0 t2) + n' = ((t11 n11 t13) n11' (t14 n0 t2))
+        where t := t1 n0 t2
+        and t1' := t11 n11 t13
+        and t2' := t14 n0 t2
+    is
+        proof by case analysis on d1:
+            case rule
+                dp10: AVL t1
+                dp11: AVL t2
+                dp12: h t1 = n3
+                dp13: h t2 = n4
+                dp14: n3 ~ n4
+                ----------------- AVL-node
+                _: AVL (t1 n0 t2)
+            is
+                use inversion of tree-eq on dp6
+                where t0 := t11 n11 t12
+                use inversion of tree-eq on dp7
+                where t12 := t13 n11' t14
+                
+                d6: n4 = n2 by theorem height-unique on dp13, dp4
+                use inversion of eq on d6
+                where n4 := n2
+                
+                
+                d8: n2 < s n2 by rule less-one
+                d9: max n2 s n2 = s n2 by rule max-n1-less on d8
+                d10: h t0 = s s n2 by rule node-height on dp8, dp9, d9
+                d11: n1 = s s n2 by theorem height-unique on dp3, d10
+                use inversion of eq on d11
+                where n1 := s s n2
+                
+                d12: s s n2 = n3 or s s n2 = s n3 by theorem height-increase on dp2, dp10, dp12, dp3          
+                
+                proof by case analysis on d12:
+                    case or o1: (s (s n2)) = n3 is
+                        use inversion of eq on o1
+                        where n3 := s s n2
+                        
+                        proof by contradiction on dp14
+                    end case
+
+                    case or o2: (s (s n2)) = (s n3) is
+                        use inversion of eq on o2
+                        where n3 := s n2
+                        
+                        d13: n2 < s n2 by rule less-one
+                        d14: max s n2 n2 = s n2 by rule max-n2-less on d13
+                        d15: h t = s s n2 by rule node-height on dp12, dp4, d14
+                        d17: s n = s s n2 by theorem height-unique on d3, d15
+                        use inversion of eq on d17
+                        where n := s n2
+                        
+                        proof by case analysis on d4:
+                            case rule
+                                dp15: h t11 = n5
+                                dp16: h t13 = n6
+                                dp17: max n5 n6 = n
+                                ------------------ node-height
+                                _: h (t11 n11 t13) = (s n)
+                            is
+                                d16: n5 = n2 by theorem height-unique on dp15, dp8
+                                use inversion of eq on d16
+                                where n5 := n2
+
+                                proof by case analysis on d5:
+                                    case rule
+                                        dp18: h t14 = n7
+                                        dp19: h t2 = n8
+                                        dp20: max n7 n8 = (s n2)
+                                        ------------------ node-height
+                                        _: h (t14 n0 t2) = (s (s n2))
+                                    is
+                                        d18: n8 = n2 by theorem height-unique on dp19, dp4
+                                        use inversion of eq on d18
+                                        where n8 := n2
+                                                                                                                      
+                                        proof by case analysis on dp17:
+                                            case rule
+                                                dp21: n2 < (s n2)
+                                                ---------------- max-n1-less
+                                                _: max n2 (s n2) = (s n2)
+                                                where n6 := s n2
+                                            is
+                                                proof by case analysis on dp20:
+                                                    case rule
+                                                        dp22: n2 < (s n2)
+                                                        ---------------- max-n2-less
+                                                        _: max (s n2) n2 = (s n2)
+                                                        where n7 := s n2
+                                                    is
+                                                        d19: s n2 = s n2 by rule eq
+                                                        d20: max s n2 s n2 = s n2 by rule max-equal on d19
+                                                        d21: h t12 = s s n2 by rule node-height on dp16, dp18, d20
+                                                        d22: s n2 = s s n2 by theorem height-unique on dp9, d21
+                                                        
+                                                        proof by contradiction on d22
+                                                    end case
+
+                                                    case rule
+                                                        dp22: (s n2) = n2
+                                                        ---------------- max-equal
+                                                        _: max (s n2) n2 = (s n2)
+                                                        where n7 := s n2
+                                                    is
+                                                        proof by contradiction on dp22
+                                                    end case
+                                                end case analysis
+                                            end case
+                                        end case analysis
+                                    end case
+                                end case analysis
+                            end case
+                        end case analysis
+                    end case
+                end case analysis    
+            end case
+        end case analysis
+    end case
+
+    case rule
+        dp1: n0 < n'
+        dp2: t2 + n' = t0
+        dp3: h t1 = n1
+        dp4: h t0 = n2
+        dp5: (s n1) < n2
+        dp6: t0 = (t21 n21 t22)
+        dp7: t21 = (t23 n11' t24)
+        dp8: h t21 = (s n1)
+        dp9: h t22 = n1
+        ------------------- add-right-double-rotate
+        _: (t1 n0 t2) + n' = ((t1 n0 t23) n11' (t24 n21 t22))
+        where t := t1 n0 t2
+        and t1' := t1 n0 t23
+        and t2' := t24 n21 t22
+    is
+        proof by case analysis on d1:
+            case rule
+                dp10: AVL t1
+                dp11: AVL t2
+                dp12: h t1 = n3
+                dp13: h t2 = n4
+                dp14: n3 ~ n4
+                ----------------- AVL-node
+                _: AVL (t1 n0 t2)
+            is
+                use inversion of tree-eq on dp6
+                where t0 := t21 n21 t22
+                use inversion of tree-eq on dp7
+                where t21 := t23 n11' t24
+                
+                d6: n3 = n1 by theorem height-unique on dp12, dp3
+                use inversion of eq on d6
+                where n3 := n1
+                
+                
+                d8: n1 < s n1 by rule less-one
+                d9: max s n1 n1 = s n1 by rule max-n2-less on d8
+                d10: h t0 = s s n1 by rule node-height on dp8, dp9, d9
+                d11: n2 = s s n1 by theorem height-unique on dp4, d10
+                use inversion of eq on d11
+                where n2 := s s n1
+                
+                d12: s s n1 = n4 or s s n1 = s n4 by theorem height-increase on dp2, dp11, dp13, dp4         
+                
+                proof by case analysis on d12:
+                    case or o1: (s (s n1)) = n4 is
+                        use inversion of eq on o1
+                        where n4 := s s n1
+                        
+                        proof by contradiction on dp14
+                    end case
+
+                    case or o2: (s (s n1)) = (s n4) is
+                        use inversion of eq on o2
+                        where n4 := s n1
+                        
+                        d13: n1 < s n1 by rule less-one
+                        d14: max n1 s n1 = s n1 by rule max-n1-less on d13
+                        d15: h t = s s n1 by rule node-height on dp3, dp13, d14
+                        d17: s n = s s n1 by theorem height-unique on d3, d15
+                        use inversion of eq on d17
+                        where n := s n1
+                        
+                        proof by case analysis on d4:
+                            case rule
+                                dp15: h t1 = n5
+                                dp16: h t23 = n6
+                                dp17: max n5 n6 = (s n1)
+                                ------------------ node-height
+                                _: h (t1 n0 t23) = (s (s n1))
+                            is
+                                 d18: n5 = n1 by theorem height-unique on dp15, dp3
+                                 use inversion of eq on d18
+                                 where n5 := n1
+                                 
+                                 proof by case analysis on d5:
+                                     case rule
+                                         dp18: h t24 = n7
+                                         dp19: h t22 = n8
+                                         dp20: max n7 n8 = (s n1)
+                                         ------------------ node-height
+                                         _: h (t24 n21 t22) = (s (s n1))
+                                     is
+                                         d19: n8 = n1 by theorem height-unique on dp19, dp9
+                                         use inversion of eq on d19
+                                         where n8 := n1
+                                         proof by case analysis on dp17:
+                                             case rule
+                                                 dp21: n1 < (s n1)
+                                                 ---------------- max-n1-less
+                                                 _: max n1 (s n1) = (s n1)
+                                                 where n6 := s n1
+                                             is
+                                                 proof by case analysis on dp20:
+                                                     case rule
+                                                         dp22: n1 < (s n1)
+                                                         ---------------- max-n2-less
+                                                         _: max (s n1) n1 = (s n1)
+                                                         where n7 := s n1
+                                                     is
+                                                         d20: s n1 = s n1 by rule eq
+                                                         d21: max s n1 s n1 = s n1 by rule max-equal on d20
+                                                         d22: h t21 = s s n1 by rule node-height on dp16, dp18, d21
+                                                         d23: s n1 = s s n1 by theorem height-unique on dp8, d22
+                                                         
+                                                         proof by contradiction on d23
+                                                     end case
+
+                                                     case rule
+                                                         dp22: (s n1) = n1
+                                                         ---------------- max-equal
+                                                         _: max (s n1) n1 = (s n1)
+                                                         where n7 := s n1
+                                                     is
+                                                         proof by contradiction on dp22
+                                                     end case
+                                                 end case analysis
+                                             end case
+                                         end case analysis
+                                     end case
+                                 end case analysis
+                            end case
+                        end case analysis
+                    end case
+                end case analysis    
+            end case
+        end case analysis
+    end case
+end induction
+end theorem
+    
+
+theorem no-equal-height-after-left-insert:
+    forall d1: AVL t1 n0 t2
+    forall d2: h t2 = n2
+    forall d3: t1 + n = t1'
+    forall d4: AVL t1' 
+    forall d5: t1' = t11 n11 t12 
+    forall d6: h t11 = s n2
+    forall d7: h t12 = s n2
+    exists contradiction.
+    
+proof by induction on d1:
+    case rule
+        dp1: AVL t1
+        dp2: AVL t2
+        dp3: h t1 = n1
+        dp4: h t2 = n4 
+        dp5: n1 ~ n4
+        ----------------- AVL-node
+        _: AVL (t1 n0 t2)
+    is
+        d8: n4 = n2 by theorem height-unique on dp4, d2
+        use inversion of eq on d8
+        where n4 := n2
+        use inversion of tree-eq on d5
+        where t1' := t11 n11 t12
+        
+        d9: AVL t1' by theorem insertion-AVL-preserved on dp1, d3
+        d10: s n2 = s n2 by rule eq
+        d11: max s n2 s n2 = s n2 by rule max-equal on d10
+        d12: h t1' = s s n4 by rule node-height on d6, d7, d11 
+        
+        d13: s s n4 = n1 or s s n4 = s n1 by theorem height-increase on d3, dp1, dp3, d12
+        
+        proof by case analysis on d13:
+            case or o1: (s (s n2)) = n1 is
+                use inversion of eq on o1
+                where n1 := s s n2               
+                proof by case analysis on dp5:
+                end case analysis
+            end case
+
+            case or o2: (s (s n2)) = (s n1) is
+                use inversion of eq on o2
+                where n1 := s n2
+                 
+                proof by theorem common-case on dp1, d3, dp3, d6, d7 
+            end case
+        end case analysis
+    end case
+    
+end induction 
+end theorem
+
+theorem no-equal-height-after-right-insert:
+    forall d1: AVL t1 n0 t2
+    forall d2: h t1 = n1
+    forall d3: t2 + n = t2'
+    forall d4: AVL t2' 
+    forall d5: t2' = t21 n2 t22 
+    forall d6: h t21 = s n1
+    forall d7: h t22 = s n1
+    exists contradiction.
+    
+proof by induction on d1:
+    case rule
+        dp1: AVL t1
+        dp2: AVL t2
+        dp3: h t1 = n3
+        dp4: h t2 = n4
+        dp5: n3 ~ n4
+        ----------------- AVL-node
+        _: AVL (t1 n0 t2)
+    is
+        d8: n3 = n1 by theorem height-unique on dp3, d2
+        use inversion of eq on d8
+        where n3 := n1
+        
+        use inversion of tree-eq on d5
+        where t2' := t21 n2 t22
+        
+        d9: AVL t2' by theorem insertion-AVL-preserved on dp2, d3
+        d10: s n1 = s n1 by rule eq
+        d11: max s n1 s n1 = s n1 by rule max-equal on d10
+        d12: h t2' = s s n1 by rule node-height on d6, d7, d11
+        
+        d13: s s n1 = n4 or s s n1 = s n4 by theorem height-increase on d3, dp2, dp4, d12
+                
+        proof by case analysis on d13:
+            case or o1: (s (s n1)) = n4 is
+                use inversion of eq on o1
+                where n4 := s s n1
+                proof by case analysis on dp5:
+                end case analysis
+            end case
+
+            case or o2: (s (s n1)) = (s n4) is
+                use inversion of eq on o2 
+                where n4 := s n1
+                proof by theorem common-case on dp2, d3, dp4, d6, d7
+            end case
+
+        end case analysis 
+    end case
+
+end induction
+end theorem
+
+theorem insertion-AVL-total: forall d1:AVL t forall n exists t + n = t'.
+proof by induction on d1:
+
+
+    case rule
+        ----------------- AVL-null
+        _: AVL null
+        where t := null
+    is
+        d2: null + n = null n null  by rule insert-to-null
+    end case
+
+    case rule
+        dp1: AVL t1
+        dp2: AVL t2
+        dp3: h t1 = n1
+        dp4: h t2 = n2
+        dp5: n1 ~ n2
+        ----------------- AVL-node
+        dc: AVL (t1 n0 t2)
+        where t := t1 n0 t2
+    is
+        d3: n0 < n or n < n0 or n0 = n by theorem trichotomy on n0, n
+        proof by case analysis on d3:
+            case or o1: n0 < n is
+                // insert right
+                d5: t2 + n = t2' by induction hypothesis on dp2, n
+                d6: h t2' = n2' by theorem height-total on t2'
+                d7: n2' = n2 or n2' = s n2 by theorem height-increase on d5, dp2, dp4, d6
+               
+                proof by case analysis on d7:
+                    case or o4: n2' = n2 is
+                        use inversion of eq on o4
+                        where n2' := n2
+                        
+
+                        d9: (t1 n0 t2) + n  = t1 n0 t2' by rule add-right-no-rotate on o1, d5, dp3, d6, dp5
+                    end case
+
+                    case or o5: n2' = (s n2) is
+                        use inversion of eq on o5
+                        where n2' := s n2
+
+                        proof by case analysis on dp5:
+                            case rule
+                                ----------------- n-close-to-succ
+                                _: n1 ~ (s n1)
+                                where n2 := s n1
+                            is                                
+                                d10: s n1 < n2' by rule less-one
+                                
+                                proof by case analysis on t2':
+                                    case null is                                                                                
+                                        proof by case analysis on d6:                                       
+                                        end case analysis    
+                                    end case
+
+                                    case t21 n21 t22 is
+                                        d11: t2' = t21 n21 t22 by rule tree-eq                                        
+                                        d12: AVL t2' by theorem insertion-AVL-preserved on dp2, d5 
+                                        proof by case analysis on d12:
+                                            case rule
+                                                dp6: AVL t21
+                                                dp7: AVL t22
+                                                dp8: h t21 = n3
+                                                dp9: h t22 = n4
+                                                dp10: n3 ~ n4
+                                                ----------------- AVL-node
+                                                _: AVL (t21 n21 t22)
+                                            is
+                                                proof by case analysis on d6:
+                                                    case rule
+                                                        dp11: h t21 = n5
+                                                        dp12: h t22 = n6
+                                                        dp13: max n5 n6 = (s n1)
+                                                        ------------------ node-height
+                                                        _: h (t21 n21 t22) = (s (s n1))
+                                                    is
+                                                        d13: n5 = n3 by theorem height-unique on dp11, dp8
+                                                        use inversion of eq on d13
+                                                        where n5 := n3
+                                                        d14: n6 = n4 by theorem height-unique on dp12, dp9
+                                                        use inversion of eq on d14 
+                                                        where n6 := n4
+                                                        
+                                                        
+                                                        proof by case analysis on dp13:
+                                                            case rule
+                                                                dp14: n3 < (s n1)
+                                                                ---------------- max-n1-less
+                                                                _: max n3 (s n1) = (s n1)
+                                                                where n4 := s n1
+                                                            is
+                                                                proof by case analysis on dp10:
+                                                                    case rule
+                                                                        ----------------- n-close-to-succ
+                                                                        _: n1 ~ (s n1)
+                                                                        where n3 := n1
+                                                                    is
+                                                                        proof by rule add-right-single-rotate on o1, d5, dp3, d6, d10, d11, dp8, dp9 
+                                                                    end case
+
+                                                                    case rule
+                                                                        ----------------- n-close-to-n
+                                                                        _: (s n1) ~ (s n1)
+                                                                        where n3 := s n1
+                                                                    is
+                                                                        d15: contradiction by theorem less-than-contradict on dp14
+                                                                    end case
+
+                                                                    case rule
+                                                                        ----------------- succ-close-to-n
+                                                                        _: (s (s n1)) ~ (s n1)
+                                                                        where n3 := s s n1
+                                                                    is
+                                                                        d15: n4 < n3 by rule less-one
+                                                                        d16: contradiction by theorem anti-symmetric on n4, d15, dp14
+                                                                    end case
+                                                                end case analysis
+                                                            end case
+
+                                                            case rule
+                                                                dp14: n4 < (s n1)
+                                                                ---------------- max-n2-less
+                                                                _: max (s n1) n4 = (s n1)
+                                                                where n3 := s n1
+                                                            is                                                               
+                                                                proof by case analysis on dp10:
+                                                                    case rule
+                                                                        ----------------- n-close-to-succ
+                                                                        _: (s n1) ~ (s (s n1))
+                                                                        where n4 := s s n1
+                                                                    is
+                                                                        d15: n3 < n4 by rule less-one
+                                                                        d16: contradiction by theorem anti-symmetric on n4, dp14, d15
+                                                                    end case
+
+                                                                    case rule
+                                                                        ----------------- n-close-to-n
+                                                                        _: (s n1) ~ (s n1)
+                                                                        where n4 := s n1
+                                                                    is
+                                                                        d15: contradiction by theorem less-than-contradict on dp14
+                                                                    end case
+
+                                                                    case rule
+                                                                        ----------------- succ-close-to-n
+                                                                        _: (s n1) ~ n1
+                                                                        where n4 := n1
+                                                                    is
+                                                                        proof by case analysis on t21:
+                                                                            case null is
+                                                                                proof by case analysis on dp8:
+                                                                                end case analysis
+                                                                            end case
+
+                                                                            case t23 n22 t24 is
+                                                                                d15: t21 = t23 n22 t24 by rule tree-eq                                                               
+                                                                                proof by rule add-right-double-rotate on o1, d5, dp3, d6, d10, d11, d15, dp8, dp9
+                                                                            end case
+                                                                        end case analysis 
+                                                                    end case
+                                                                    
+                                                                end case analysis
+                                                            end case
+
+                                                            case rule
+                                                                dp14: (s n1) = n4
+                                                                ---------------- max-equal
+                                                                _: max (s n1) n4 = (s n1)
+                                                                where n3 := s n1
+                                                            is
+                                                                use inversion of eq on dp14
+                                                                where n4 := s n1 
+                                                                d15: contradiction by theorem no-equal-height-after-right-insert on d1, dp3, d5, d12, d11, dp8, dp9  
+                                                            end case
+                                                        end case analysis
+                                                    end case
+                                                end case analysis
+                                            end case                                        
+                                        end case analysis       
+                                    end case                                                                            
+                                end case analysis    
+                            end case
+
+                            case rule
+                                ----------------- n-close-to-n
+                                _: n2 ~ n2
+                                where n1 := n2
+                            is
+                                
+                                d11: n1 ~ n2' by rule n-close-to-succ     
+                                d12: (t1 n0 t2) + n  = t1 n0 t2' by rule add-right-no-rotate on o1, d5, dp3, d6, d11
+                            end case
+
+                            case rule
+                                ----------------- succ-close-to-n
+                                _: (s n2) ~ n2
+                                where n1 := s n2
+                            is
+                                d13: n1 ~ n2' by rule n-close-to-n
+                                d14: (t1 n0 t2) + n  = t1 n0 t2' by rule add-right-no-rotate on o1, d5, dp3, d6, d13
+                            end case
+                        end case analysis    
+                    end case
+                end case analysis
+            end case
+           
+            case or o2: n < n0 is
+                // insert left
+                d30: t1 + n = t1' by induction hypothesis on dp1, n
+                d31: h t1' = n1' by theorem height-total on t1'
+                d32: n1' = n1 or n1' = s n1 by theorem height-increase on d30, dp1, dp3, d31
+                proof by case analysis on d32: 
+                    case or o6: n1' = n1 is
+                        use inversion of eq on o6
+                        where n1' := n1
+                         
+                        d33: (t1 n0 t2) + n = (t1' n0 t2) by rule add-left-no-rotate on o2, d30, d31, dp4, dp5
+                    end case
+
+                    case or o7: n1' = (s n1) is
+                        use inversion of eq on o7
+                        where n1' := s n1
+                                               
+                        proof by case analysis on dp5:
+                            case rule
+                                ----------------- n-close-to-succ
+                                _: n1 ~ (s n1)
+                                where n2 := s n1
+                            is
+                                d34: n1' ~ n2 by rule n-close-to-n
+                                d35: (t1 n0 t2) + n = (t1' n0 t2) by rule add-left-no-rotate on o2, d30, d31, dp4, d34
+                            end case
+
+                            case rule
+                                ----------------- n-close-to-n
+                                _: n1 ~ n1
+                                where n2 := n1
+                            is
+                                d36: n1' ~ n2 by rule succ-close-to-n
+                                d37: (t1 n0 t2) + n = (t1' n0 t2) by rule add-left-no-rotate on o2, d30, d31, dp4, d36
+                            end case
+
+                            case rule
+                                ----------------- succ-close-to-n
+                                _: s n2 ~ n2
+                                where n1 := s n2
+                                
+                            is
+                                proof by case analysis on t1':
+                                    case null is
+                                        proof by case analysis on d31:
+                                        end case analysis
+                                    end case
+
+                                    case t11 n11 t12 is
+                                        d34: t1' = t11 n11 t12 by rule tree-eq
+                                        d35: AVL t1' by theorem insertion-AVL-preserved on dp1, d30
+                                        proof by case analysis on d35:
+                                            case rule
+                                                dp6: AVL t11
+                                                dp7: AVL t12
+                                                dp8: h t11 = n3
+                                                dp9: h t12 = n4
+                                                dp10: n3 ~ n4
+                                                ----------------- AVL-node
+                                                _: AVL (t11 n11 t12)
+                                            is
+                                                proof by case analysis on d31:
+                                                    case rule
+                                                        dp11: h t11 = n5
+                                                        dp12: h t12 = n6
+                                                        dp13: max n5 n6 = (s n2)
+                                                        ------------------ node-height
+                                                        _: h (t11 n11 t12) = (s (s n2))
+                                                    is
+                                                        d36: n5 = n3 by theorem height-unique on dp11, dp8
+                                                        use inversion of eq on d36
+                                                        where n5 := n3
+                                                        d37: n6 = n4 by theorem height-unique on dp12, dp9
+                                                        use inversion of eq on d37
+                                                        where n6 := n4
+                                                                            
+                                                                                                              
+                                                        proof by case analysis on dp13:
+                                                            case rule
+                                                                dp14: n3 < (s n2)
+                                                                ---------------- max-n1-less
+                                                                _: max n3 (s n2) = (s n2)
+                                                                where n4 := s n2
+                                                            is
+                                                                proof by case analysis on dp10:
+                                                                    case rule
+                                                                        ----------------- n-close-to-succ
+                                                                        _: n2 ~ (s n2)
+                                                                        where n3 := n2
+                                                                    is
+                                                                        //proof by rule add-left-double-rotate on o2, d30, d31, dp4, d10, d34, 
+                                                                         proof by case analysis on t12:
+                                                                            case null is
+                                                                                proof by case analysis on dp12:
+                                                                                end case analysis
+                                                                            end case
+
+                                                                            case t13 n12 t14 is
+                                                                                d38: s n2 < n1' by rule less-one
+                                                                                d39: t12 = t13 n12 t14 by rule tree-eq                                                               
+                                                                                proof by rule add-left-double-rotate on o2, d30, d31, dp4, d38, d34, d39, dp8, dp9
+                                                                            end case
+                                                                        end case analysis 
+                                                                    end case
+
+                                                                    case rule
+                                                                        ----------------- n-close-to-n
+                                                                        _: (s n2) ~ (s n2)
+                                                                       where n3 := s n2
+                                                                    is
+                                                                        d38: contradiction by theorem less-than-contradict on dp14
+                                                                    end case
+
+                                                                    case rule
+                                                                        ----------------- succ-close-to-n
+                                                                        _: (s (s n2)) ~ (s n2)
+                                                                        where n3 := s s n2
+                                                                    is
+                                                                        d38: s n2 < s s n2 by rule less-one
+                                                                        d39: contradiction by theorem anti-symmetric on n3, dp14, d38
+                                                                    end case
+                                                                end case analysis
+                                                            end case
+
+                                                            case rule
+                                                                dp14: n4 < (s n2)
+                                                                ---------------- max-n2-less
+                                                                _: max (s n2) n4 = (s n2)
+                                                                where n3 := s n2
+                                                            is
+                                                                proof by case analysis on dp10:
+                                                                    case rule
+                                                                        ----------------- n-close-to-succ
+                                                                        _: (s n2) ~ (s (s n2))
+                                                                        where n4 := s s n2
+                                                                    is
+                                                                        d38: n3 < n4 by rule less-one
+                                                                        d39: contradiction by theorem anti-symmetric on n3, d38, dp14
+                                                                    end case
+
+                                                                    case rule
+                                                                        ----------------- n-close-to-n
+                                                                        _: (s n2) ~ (s n2)
+                                                                        where n4 := s n2
+                                                                    is
+                                                                        d38: contradiction by theorem less-than-contradict on dp14
+                                                                    end case
+
+                                                                    case rule
+                                                                        ----------------- succ-close-to-n
+                                                                        _: (s n2) ~ n2
+                                                                        where n4  := n2
+                                                                    is
+                                                                        d38: s n2 < n1' by rule less-one                                                                                     
+                                                                        proof by rule add-left-single-rotate on o2, d30, d31, dp4, d38, d34, dp8, dp9
+                                                                    end case
+                                                                end case analysis
+                                                            end case
+
+                                                            case rule
+                                                                dp14: (s n2) = n4
+                                                                ---------------- max-equal
+                                                                _: max (s n2) n4 = (s n2)
+                                                                where n3 := s n2
+                                                            is
+                                                                use inversion of eq on dp14
+                                                                where n4 := s n2
+                                                                d38: contradiction by theorem no-equal-height-after-left-insert on d1, dp4, d30, d35, d34, dp8, dp9
+                                                            end case
+                                                        end case analysis
+                                                    end case
+                                                end case analysis
+                                            end case
+                                        end case analysis
+                                    end case
+                                end case analysis
+                            end case 
+                        end case analysis
+                    end case                   
+                end case analysis
+            end case
+
+            case or o3: n0 = n is
+                use inversion of eq on o3
+                where n0 := n              
+                d4: t1 n t2 + n = t1 n t2 by rule add-duplicate
+            end case
+              
+        end case analysis
+    end case 
+end induction
+end theorem
